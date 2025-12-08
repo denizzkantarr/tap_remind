@@ -17,6 +17,19 @@ class _ReminderDialogState extends State<ReminderDialog> {
   bool _isPlaying = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Listen to audio player state changes
+    _audioPlayer.onPlayingStateChanged = (isPlaying) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = isPlaying;
+        });
+      }
+    };
+  }
+
+  @override
   void dispose() {
     _audioPlayer.dispose();
     super.dispose();
@@ -29,10 +42,39 @@ class _ReminderDialogState extends State<ReminderDialog> {
         _isPlaying = false;
       });
     } else {
-      await _audioPlayer.playAudio(widget.reminder.audioPath);
-      setState(() {
-        _isPlaying = true;
-      });
+      print('🎵 Attempting to play audio from: ${widget.reminder.audioPath}');
+      try {
+        final success = await _audioPlayer.playAudio(widget.reminder.audioPath);
+        
+        // Update state immediately
+        setState(() {
+          _isPlaying = _audioPlayer.isPlaying;
+        });
+        
+        if (!success || !_isPlaying) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Ses çalınamadı. Dosya yolu veya ses seviyesini kontrol edin.'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        print('❌ Error playing audio: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ses dosyası oynatılamadı: $e'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        setState(() {
+          _isPlaying = false;
+        });
+      }
     }
   }
 
@@ -46,11 +88,53 @@ class _ReminderDialogState extends State<ReminderDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            widget.reminder.transcript,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+          // Transkript başlığı
+          Row(
+            children: [
+              Icon(
+                widget.reminder.transcript.isEmpty
+                    ? Icons.mic
+                    : Icons.text_fields,
+                size: 20,
+                color: widget.reminder.transcript.isEmpty
+                    ? Colors.grey
+                    : const Color(0xFFFF6B35),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Transkript:',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Transkript içeriği
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            child: Text(
+              widget.reminder.transcript.isEmpty
+                  ? 'Ses kaydı (transkript yok)'
+                  : widget.reminder.transcript,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: widget.reminder.transcript.isEmpty
+                    ? Colors.grey[600]
+                    : Colors.black87,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -64,8 +148,28 @@ class _ReminderDialogState extends State<ReminderDialog> {
             label: Text(_isPlaying ? 'Durdur' : 'Oynat'),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 48),
+              backgroundColor: _isPlaying ? Colors.red : Colors.blue,
+              foregroundColor: Colors.white,
             ),
           ),
+          if (_isPlaying) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.volume_up, size: 16, color: Colors.green[700]),
+                const SizedBox(width: 4),
+                Text(
+                  'Ses çalınıyor...',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.green[700],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
       actions: [

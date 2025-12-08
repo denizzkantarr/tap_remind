@@ -41,7 +41,10 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
     super.dispose();
   }
 
-  void _loadReminders() {
+  Future<void> _loadReminders() async {
+    // Mark expired reminders as completed before loading
+    await _storageService.markExpiredRemindersAsCompleted();
+    
     setState(() {
       if (_selectedTab == 'active') {
         _reminders = _storageService.getActiveReminders();
@@ -82,7 +85,33 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
   }
 
   Future<void> _playAudio(String audioPath) async {
-    await _audioPlayer.playAudio(audioPath);
+    print('🎵 Attempting to play audio from: $audioPath');
+    try {
+      final success = await _audioPlayer.playAudio(audioPath);
+      
+      if (!success || !_audioPlayer.isPlaying) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ses çalınamadı. Dosya yolu veya ses seviyesini kontrol edin.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        print('✅ Audio is playing successfully');
+      }
+    } catch (e) {
+      print('❌ Error playing audio: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ses dosyası oynatılamadı: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -125,17 +154,35 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
 
   Widget _buildReminderCard(Reminder reminder) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'tr_TR');
+    final transcript = reminder.transcript.isEmpty 
+        ? 'Ses kaydı (transkript yok)' 
+        : reminder.transcript;
+    final hasTranscript = reminder.transcript.isNotEmpty;
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
-        title: Text(reminder.transcript),
+        leading: hasTranscript
+            ? const Icon(Icons.text_fields, color: Color(0xFFFF6B35))
+            : const Icon(Icons.mic, color: Colors.grey),
+        title: Text(
+          transcript,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: hasTranscript ? Colors.black87 : Colors.grey[600],
+          ),
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
             Text('Zaman: ${dateFormat.format(reminder.scheduledTime)}'),
             Text('Oluşturulma: ${dateFormat.format(reminder.createdAt)}'),
+            if (reminder.audioPath.isNotEmpty)
+              const SizedBox(height: 4),
+            if (reminder.audioPath.isNotEmpty)
+              const Text('🎵 Ses kaydı mevcut', style: TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         trailing: Row(

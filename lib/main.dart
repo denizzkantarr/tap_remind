@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+// 🔥 EKSİK OLANLAR — BUNLAR OLMAZSA iOS SCHEDULED ÇALIŞMAZ
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
 import 'screens/home_screen.dart';
@@ -11,42 +18,45 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 final NotificationService notificationService = NotificationService();
 final StorageService storageService = StorageService();
 
-// Global navigator key for showing dialogs from notifications
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Hive
+
+  // 🔥 MUTLAKA GEREK — iOS SCHEDULED BUNDAN SONRA ÇALIŞIR
+  tz.initializeTimeZones();
+
+  final InitializationSettings initSettings = InitializationSettings(
+    android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    iOS: DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    ),
+  );
+
+  // Permissions
+  await Permission.notification.request();
+  if (await Permission.scheduleExactAlarm.isDenied) {
+    await Permission.scheduleExactAlarm.request();
+  }
+
+  await initializeDateFormatting('tr_TR', null);
+
   await Hive.initFlutter();
-  
-  // Register Hive adapter
+
   if (!Hive.isAdapterRegistered(0)) {
     Hive.registerAdapter(ReminderAdapter());
   }
-  
-  // Initialize settings box
+
   await Hive.openBox('settings');
-  
-  // Initialize storage service
   await storageService.init();
-  
-  // Initialize notification service
+
   await notificationService.initialize();
-  
-  // Handle notification taps
-  flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(const AndroidNotificationChannel(
-    'reminder_channel',
-    'Hatırlatıcılar',
-    description: 'Sesli hatırlatıcı bildirimleri',
-    importance: Importance.high,
-  ));
 
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

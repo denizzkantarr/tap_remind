@@ -28,6 +28,18 @@ class StorageService {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
+  Future<void> markExpiredRemindersAsCompleted() async {
+    final now = DateTime.now();
+    final reminders = _reminderBox.values.toList();
+    
+    // Mark expired reminders as completed
+    for (var reminder in reminders) {
+      if (!reminder.isCompleted && reminder.scheduledTime.isBefore(now)) {
+        await markAsCompleted(reminder.id);
+      }
+    }
+  }
+
   List<Reminder> getActiveReminders() {
     final now = DateTime.now();
     return _reminderBox.values
@@ -37,8 +49,12 @@ class StorageService {
   }
 
   List<Reminder> getCompletedReminders() {
-    return _reminderBox.values
-        .where((r) => r.isCompleted)
+    final now = DateTime.now();
+    final reminders = _reminderBox.values.toList();
+    
+    // Include both manually completed and expired reminders
+    return reminders
+        .where((r) => r.isCompleted || r.scheduledTime.isBefore(now))
         .toList()
       ..sort((a, b) => b.scheduledTime.compareTo(a.scheduledTime));
   }

@@ -4,19 +4,48 @@ import 'package:permission_handler/permission_handler.dart';
 class SpeechService {
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isInitialized = false;
+  
+  // Expose _speech for direct access in home_screen
+  stt.SpeechToText get speech => _speech;
 
   Future<bool> initialize() async {
-    if (_isInitialized) return true;
+    if (_isInitialized) {
+      print('✅ Speech service already initialized');
+      return true;
+    }
 
+    print('🔄 Requesting speech permission...');
     final status = await Permission.speech.request();
+    print('🔐 Speech permission result: $status');
+    
     if (!status.isGranted) {
+      print('❌ Speech permission not granted!');
       return false;
     }
 
+    print('🔄 Initializing speech_to_text...');
     _isInitialized = await _speech.initialize(
-      onStatus: (status) => print('Speech status: $status'),
-      onError: (error) => print('Speech error: $error'),
+      onStatus: (status) {
+        print('📡 Speech service status: $status');
+      },
+      onError: (error) {
+        print('❌ Speech service error: $error');
+        print('   Error details: ${error.errorMsg}');
+      },
     );
+
+    print('✅ Speech service initialized: $_isInitialized');
+    if (_isInitialized) {
+      final isAvailable = _speech.isAvailable;
+      print('📊 Speech recognition available: $isAvailable');
+      if (!isAvailable) {
+        print('⚠️ WARNING: Speech recognition is not available!');
+        print('   This might be because:');
+        print('   1. Google Speech Services not installed');
+        print('   2. Internet connection required');
+        print('   3. Device language settings');
+      }
+    }
 
     return _isInitialized;
   }
