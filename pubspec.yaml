@@ -52,7 +52,10 @@ dependencies:
   flutter_local_notifications: ^17.2.2
   
   # Date/Time formatting
-  intl: ^0.19.0
+  intl: ^0.20.2
+  
+  # Localization
+  easy_localization: ^3.0.7
   
   # Audio player
   audioplayers: ^6.1.0
@@ -92,6 +95,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/translations/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

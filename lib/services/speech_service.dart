@@ -1,5 +1,4 @@
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:permission_handler/permission_handler.dart';
 
 class SpeechService {
   final stt.SpeechToText _speech = stt.SpeechToText();
@@ -14,14 +13,9 @@ class SpeechService {
       return true;
     }
 
-    print('🔄 Requesting speech permission...');
-    final status = await Permission.speech.request();
-    print('🔐 Speech permission result: $status');
-    
-    if (!status.isGranted) {
-      print('❌ Speech permission not granted!');
-      return false;
-    }
+    // iOS'ta speech recognition izni speech.listen() çağrıldığında otomatik istenir
+    // Bu yüzden burada izin kontrolü yapmıyoruz, direkt initialize ediyoruz
+    // İzin, speech.listen() çağrıldığında iOS tarafından otomatik istenecek
 
     print('🔄 Initializing speech_to_text...');
     _isInitialized = await _speech.initialize(

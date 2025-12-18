@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,6 +12,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   static const String _settingsBoxName = 'settings';
   static const String _soundKey = 'notification_sound';
+  static const String _languageKey = 'language';
 
   final List<String> _soundOptions = [
     'Varsayılan',
@@ -21,6 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ];
 
   String _selectedSound = 'Varsayılan';
+  String _selectedLanguage = 'tr';
 
   @override
   void initState() {
@@ -32,6 +35,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final settingsBox = Hive.box(_settingsBoxName);
     setState(() {
       _selectedSound = settingsBox.get(_soundKey, defaultValue: 'Varsayılan');
+      _selectedLanguage = settingsBox.get(_languageKey, defaultValue: 'tr');
     });
   }
 
@@ -44,7 +48,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ayarlar kaydedildi')),
+        SnackBar(content: Text('settings_saved'.tr())),
+      );
+    }
+  }
+
+  Future<void> _saveLanguageSetting(String languageCode) async {
+    final settingsBox = Hive.box(_settingsBoxName);
+    await settingsBox.put(_languageKey, languageCode);
+    
+    // Change app locale
+    await context.setLocale(languageCode == 'en' ? const Locale('en') : const Locale('tr'));
+    
+    setState(() {
+      _selectedLanguage = languageCode;
+    });
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('settings_saved'.tr())),
       );
     }
   }
@@ -53,29 +75,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ayarlar'),
+        title: Text('settings'.tr()),
       ),
       body: ListView(
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Text(
-              'Bildirim Ayarları',
-              style: TextStyle(
+              'notification_settings'.tr(),
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
           ListTile(
-            title: const Text('Bildirim Sesi'),
+            title: Text('notification_sound'.tr()),
             subtitle: Text(_selectedSound),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Bildirim Sesi Seç'),
+                  title: Text('select_notification_sound'.tr()),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: _soundOptions.map((sound) {
@@ -96,20 +118,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
+          ListTile(
+            title: Text('language'.tr()),
+            subtitle: Text(_selectedLanguage == 'en' ? 'english'.tr() : 'turkish'.tr()),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('select_language'.tr()),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      RadioListTile<String>(
+                        title: Text('turkish'.tr()),
+                        value: 'tr',
+                        groupValue: _selectedLanguage,
+                        onChanged: (value) {
+                          if (value != null) {
+                            _saveLanguageSetting(value);
+                            Navigator.pop(context);
+                          }
+                        },
+                      ),
+                      RadioListTile<String>(
+                        title: Text('english'.tr()),
+                        value: 'en',
+                        groupValue: _selectedLanguage,
+                        onChanged: (value) {
+                          if (value != null) {
+                            _saveLanguageSetting(value);
+                            Navigator.pop(context);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           const Divider(),
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Text(
-              'Hakkında',
-              style: TextStyle(
+              'about'.tr(),
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          const ListTile(
-            title: Text('Versiyon'),
-            subtitle: Text('1.0.0'),
+          ListTile(
+            title: Text('version'.tr()),
+            subtitle: const Text('1.0.0'),
           ),
         ],
       ),

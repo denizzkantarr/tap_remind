@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class AudioService {
   final AudioRecorder _recorder = AudioRecorder();
@@ -10,12 +9,6 @@ class AudioService {
 
   Future<bool> startRecording() async {
     if (_isRecording) return false;
-
-    // Request microphone permission
-    final status = await Permission.microphone.request();
-    if (!status.isGranted) {
-      return false;
-    }
 
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -27,6 +20,10 @@ class AudioService {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       _currentRecordingPath = '${audioDir.path}/recording_$timestamp.m4a';
 
+      // iOS'ta mikrofon izni dialog'u AudioRecorder.start() çağrıldığında otomatik çıkar
+      // Bu yüzden önce Permission.microphone.request() yapmıyoruz
+      // iOS otomatik olarak izin isteyecek
+      print('🎤 Starting audio recorder (iOS will request permission automatically)...');
       await _recorder.start(
         const RecordConfig(
           encoder: AudioEncoder.aacLc,
@@ -37,9 +34,12 @@ class AudioService {
       );
 
       _isRecording = true;
+      print('✅ Audio recording started successfully');
       return true;
     } catch (e) {
-      print('Error starting recording: $e');
+      print('❌ Error starting recording: $e');
+      // iOS'ta izin reddedilirse exception fırlatılır
+      // Bu durumda false döndürüyoruz
       return false;
     }
   }

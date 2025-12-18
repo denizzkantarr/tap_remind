@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:easy_localization/easy_localization.dart';
 import '../models/reminder.dart';
 import '../services/audio_service.dart';
 import '../services/speech_service.dart';
@@ -29,8 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isRecording = false;
   String? _currentButtonType;
   String _transcript = '';
-  bool _isSimpleTranscription = false;
-  String _finalTranscription = '';
   bool _waitingForFinalResult = false;
   double _soundLevel = 0.0;
   bool _isSpeechListening = false;
@@ -38,17 +37,35 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _speechService.initialize();
+    _checkAndRequestPermissions();
     _checkOverdueReminders();
+  }
+  
+  Future<void> _checkAndRequestPermissions() async {
+    // iOS'ta mikrofon izni dialog'u genellikle gerçekten mikrofon kullanılmaya çalışıldığında çıkar
+    // Bu yüzden sadece durumu kontrol ediyoruz, izin istemiyoruz
+    // İzin, kullanıcı butona bastığında istenecek
+    
+    // Mikrofon izni durumu
+    final micStatus = await Permission.microphone.status;
+    print('📱 Initial microphone permission status: $micStatus');
+    
+    // Speech recognition izni durumu
+    final speechStatus = await Permission.speech.status;
+    print('📱 Initial speech permission status: $speechStatus');
+    
+    // Speech service'i initialize et (bu da izin isteyebilir)
+    _speechService.initialize();
   }
   
   Future<void> _checkOverdueReminders() async {
     // Check for reminders that should have fired but didn't
-    final now = tz.TZDateTime.now(tz.local);
+    final location = tz.getLocation('Europe/Istanbul');
+    final now = tz.TZDateTime.now(location);
     final activeReminders = _storageService.getActiveReminders();
     
     for (var reminder in activeReminders) {
-      final scheduledTime = tz.TZDateTime.from(reminder.scheduledTime, tz.local);
+      final scheduledTime = tz.TZDateTime.from(reminder.scheduledTime, location);
       // If reminder time passed but not completed, show notification
       if (scheduledTime.isBefore(now) && !reminder.isCompleted) {
         print('Found overdue reminder: ${reminder.id}, scheduled: $scheduledTime');
@@ -64,14 +81,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _startSimpleTranscription() async {
-    setState(() {
-      _isSimpleTranscription = true;
-      _finalTranscription = '';
-    });
-    await _startRecording('simple_transcription');
-  }
-
   Future<void> _startRecording(String buttonType) async {
     setState(() {
       _isRecording = true;
@@ -79,51 +88,61 @@ class _HomeScreenState extends State<HomeScreen> {
       _transcript = '';
     });
 
-    // Check microphone permission first
-    final micPermission = await Permission.microphone.status;
-    print('Microphone permission status: $micPermission');
+    // iOS'ta mikrofon izni dialog'u AudioRecorder.start() çağrıldığında otomatik çıkar
+    // Bu yüzden önce izin kontrolü yapmıyoruz, direkt kayıt başlatıyoruz
+    // Eğer izin yoksa, AudioRecorder.start() exception fırlatacak veya false dönecek
     
-    if (!micPermission.isGranted) {
-      final micResult = await Permission.microphone.request();
-      print('Microphone permission request result: $micResult');
-      if (!micResult.isGranted) {
-        _showError('Mikrofon izni gerekli');
-        setState(() {
-          _isRecording = false;
-        });
-        return;
-      }
-    }
-    
-    // Start audio recording
+    // Start audio recording (iOS will show permission dialog automatically)
+    print('🎤 Starting audio recording (iOS will request permission if needed)...');
     final recordingStarted = await _audioService.startRecording();
     print('Audio recording started: $recordingStarted');
+    
+    // Eğer kayıt başlatılamadıysa, izin kontrolü yap
+    if (!recordingStarted) {
+      final micPermission = await Permission.microphone.status;
+      print('Microphone permission status after failed start: $micPermission');
+      
+      if (micPermission.isPermanentlyDenied) {
+        // iOS'ta permanently denied ise ayarlara yönlendir
+        final shouldOpen = await _showPermissionDialog(
+          'microphone_permission_required_title'.tr(),
+          'microphone_permission_required_message'.tr(),
+        );
+        if (shouldOpen) {
+          await openAppSettings();
+        }
+      } else if (!micPermission.isGranted) {
+        // İzin henüz verilmemiş, kullanıcıya bilgi ver
+        _showError('microphone_permission_required'.tr());
+      } else {
+        // İzin var ama kayıt başlatılamadı, başka bir sorun olabilir
+        _showError('audio_recording_failed'.tr());
+      }
+      
+      setState(() {
+        _isRecording = false;
+      });
+      return;
+    }
     
     // Start real-time speech recognition
     print('🎤 ===== Starting Speech Recognition =====');
     
-    // Check speech permission
-    final speechPermission = await Permission.speech.status;
-    print('🔐 Speech permission status: $speechPermission');
-    
-    if (!speechPermission.isGranted) {
-      print('⚠️ Speech permission not granted, requesting...');
-      final speechResult = await Permission.speech.request();
-      print('🔐 Speech permission request result: $speechResult');
-      if (!speechResult.isGranted) {
-        print('❌ Speech permission denied! Speech-to-text will not work.');
-        _showError('Konuşma tanıma izni gerekli');
-        setState(() {
-          _isRecording = false;
-        });
-        await _audioService.stopRecording();
-        return;
-      }
-    }
+    // iOS'ta speech recognition izni de gerçekten kullanılmaya çalışıldığında istenir
+    // Speech service'in initialize() metodu içinde izin isteyecek
+    // Bu yüzden burada önce izin kontrolü yapmıyoruz
     
     print('🔄 Initializing speech service...');
     final speechInitialized = await _speechService.initialize();
     print('✅ Speech initialized: $speechInitialized');
+    
+    // Eğer speech service initialize edilemediyse, hata mesajı göster
+    if (!speechInitialized) {
+      print('⚠️ Speech service initialization failed');
+      // iOS'ta speech recognition izni speech.listen() çağrıldığında otomatik istenir
+      // Bu yüzden burada izin kontrolü yapmıyoruz, direkt devam ediyoruz
+      // İzin, speech.listen() çağrıldığında iOS tarafından otomatik istenecek
+    }
     
     if (speechInitialized) {
       print('Starting speech recognition...');
@@ -134,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
       
       if (!isAvailable) {
         print('⚠️ Speech recognition not available!');
-        _showError('Konuşma tanıma kullanılamıyor. Emülatörde çalışmayabilir. Gerçek cihazda deneyin.');
+        _showError('speech_recognition_not_available'.tr());
         setState(() {
           _isRecording = false;
         });
@@ -232,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
           print('✅ Speech recognition started with locale: $localeId');
           
           // Check status after a short delay
-          Future.delayed(const Duration(milliseconds: 500), () {
+          Future.delayed(const Duration(milliseconds: 500), () async {
             final isListening = _speechService.speech.isListening;
             print('📊 Speech recognition isListening status: $isListening');
             if (mounted) {
@@ -242,8 +261,28 @@ class _HomeScreenState extends State<HomeScreen> {
             }
             if (!isListening) {
               print('⚠️⚠️⚠️ WARNING: Speech recognition is NOT listening!');
-              if (mounted) {
-                _showError('Speech recognition başlatılamadı. Lütfen tekrar deneyin.');
+              // İzin kontrolü yap
+              final speechPermission = await Permission.speech.status;
+              print('🔐 Speech permission status: $speechPermission');
+              
+              if (speechPermission.isPermanentlyDenied) {
+                if (mounted) {
+                  final shouldOpen = await _showPermissionDialog(
+                    'speech_recognition_permission_required_title'.tr(),
+                    'speech_recognition_permission_required_message'.tr(),
+                  );
+                  if (shouldOpen) {
+                    await openAppSettings();
+                  }
+                }
+              } else if (!speechPermission.isGranted) {
+                if (mounted) {
+                  _showError('speech_recognition_permission_required'.tr());
+                }
+              } else {
+                if (mounted) {
+                  _showError('speech_recognition_failed_to_start'.tr());
+                }
               }
             } else {
               print('✅✅✅ Speech recognition is ACTIVE and listening!');
@@ -256,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
             print('📊 [2s check] Speech recognition isListening: $isListening');
             if (!isListening && mounted && _isRecording) {
               print('⚠️ Speech recognition stopped unexpectedly!');
-              _showError('Speech recognition durdu. Mikrofon ve internet bağlantınızı kontrol edin.');
+              _showError('speech_recognition_stopped'.tr());
             }
           });
           
@@ -271,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
         } catch (e, stackTrace) {
           print('❌❌❌ ERROR starting speech recognition: $e');
           print('Stack trace: $stackTrace');
-          _showError('Konuşma tanıma başlatılamadı: $e');
+          _showError('speech_recognition_failed'.tr(namedArgs: {'error': e.toString()}));
         }
       } else {
         print('Speech recognition not available - check Google Speech Services');
@@ -318,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
     
     // If transcript is empty, show a helpful message
     if (finalTranscript.isEmpty) {
-      finalTranscript = 'Konuşma algılanamadı.\n\n⚠️ Emülatör kullanıyorsanız:\n• Speech-to-text emülatörde çalışmayabilir\n• Gerçek bir Android/iOS cihazında test edin\n\nDiğer durumlar:\n• Mikrofonunuzun çalıştığından emin olun\n• Yüksek sesle ve net konuşun\n• İnternet bağlantınızı kontrol edin\n• Google Speech Services yüklü mü kontrol edin';
+      finalTranscript = 'no_speech_detected'.tr();
     }
     
     print('Final transcript after stop: "$finalTranscript"');
@@ -333,24 +372,15 @@ class _HomeScreenState extends State<HomeScreen> {
       _waitingForFinalResult = false;
     });
 
-    // If this is simple transcription mode, just show the result
-    if (_isSimpleTranscription) {
-      setState(() {
-        _finalTranscription = finalTranscript;
-        _isSimpleTranscription = false;
-      });
-      return;
-    }
-
     if (audioPath == null) {
-      _showError('Kayıt sırasında bir hata oluştu');
+      _showError('recording_error'.tr());
       return;
     }
 
     // Check if file exists
     final file = File(audioPath);
     if (!await file.exists()) {
-      _showError('Ses dosyası kaydedilemedi');
+      _showError('audio_file_save_failed'.tr());
       return;
     }
     
@@ -362,7 +392,8 @@ class _HomeScreenState extends State<HomeScreen> {
     DateTime? scheduledTime;
     
     // Use timezone-aware datetime
-    final now = tz.TZDateTime.now(tz.local);
+    final location = tz.getLocation('Europe/Istanbul');
+    final now = tz.TZDateTime.now(location);
     
     if (_currentButtonType == 'quick_1h') {
       scheduledTime = now.add(const Duration(hours: 1));
@@ -370,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen> {
       scheduledTime = now.add(const Duration(hours: 10));
     } else if (_currentButtonType == 'tomorrow_9am') {
       final tomorrow = tz.TZDateTime(
-        tz.local,
+        location,
         now.year,
         now.month,
         now.day + 1,
@@ -392,7 +423,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<DateTime?> _showDateTimePicker() async {
-    final now = tz.TZDateTime.now(tz.local);
+    final location = tz.getLocation('Europe/Istanbul');
+    final now = tz.TZDateTime.now(location);
     final localNow = DateTime(now.year, now.month, now.day, now.hour, now.minute);
     
     final pickedDate = await showDatePicker(
@@ -413,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Convert to timezone-aware datetime
     final scheduled = tz.TZDateTime(
-      tz.local,
+      location,
       pickedDate.year,
       pickedDate.month,
       pickedDate.day,
@@ -426,13 +458,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _createReminder(String audioPath, DateTime scheduledTime) async {
     // Ensure scheduledTime is timezone-aware
+    final location = tz.getLocation('Europe/Istanbul');
     final tzScheduledTime = scheduledTime is tz.TZDateTime 
         ? scheduledTime 
-        : tz.TZDateTime.from(scheduledTime, tz.local);
+        : tz.TZDateTime.from(scheduledTime, location);
     
     // Final transcript - use actual transcript if available
     final finalTranscript = _transcript.isEmpty 
-        ? 'Ses kaydı alındı' 
+        ? 'audio_recording_received'.tr() 
         : _transcript;
     
     print('📝 Creating reminder with transcript: "$finalTranscript"');
@@ -463,13 +496,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Hatırlatıcı oluşturuldu: ${DateFormat('dd/MM/yyyy HH:mm', 'tr_TR').format(scheduledTime)}',
+                      'reminder_created'.tr(namedArgs: {'time': DateFormat('dd/MM/yyyy HH:mm', 'tr_TR').format(scheduledTime)}),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
               ),
-              if (finalTranscript.isNotEmpty && finalTranscript != 'Ses kaydı alındı') ...[
+              if (finalTranscript.isNotEmpty && finalTranscript != 'audio_recording_received'.tr()) ...[
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -514,6 +547,30 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<bool> _showPermissionDialog(String title, String message) async {
+    if (!mounted) return false;
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('cancel'.tr()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('go_to_settings'.tr()),
+          ),
+        ],
+      ),
+    );
+    
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -546,130 +603,12 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 20),
-            // Simple transcription button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: GestureDetector(
-                onTapDown: (_) => _startSimpleTranscription(),
-                onTapUp: (_) => _stopRecording(),
-                onTapCancel: () => _stopRecording(),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  decoration: BoxDecoration(
-                    color: _isRecording && _isSimpleTranscription
-                        ? const Color(0xFFFF6B35)
-                        : Colors.blue[600],
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _isRecording && _isSimpleTranscription
-                            ? Icons.stop_circle
-                            : Icons.mic,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        _isRecording && _isSimpleTranscription
-                            ? 'Kaydı Durdur'
-                            : 'Basılı Tut - Konuşmayı Yazıya Çevir',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Display final transcription result
-            if (_finalTranscription.isNotEmpty && !_isRecording)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.green[50],
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.green[300]!,
-                        width: 2,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.text_fields,
-                              color: Colors.green[700],
-                              size: 24,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Yazıya Çevrilen Metin:',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[700],
-                              ),
-                            ),
-                            const Spacer(),
-                            IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed: () {
-                                setState(() {
-                                  _finalTranscription = '';
-                                });
-                              },
-                              color: Colors.green[700],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Text(
-                              _finalTranscription,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w500,
-                                height: 1.6,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              )
-            else if (!_isRecording)
-              const SizedBox(height: 20),
+            const SizedBox(height: 40),
             // Main instruction text
-            if (!_isRecording && _finalTranscription.isEmpty)
-              const Text(
-                'Press & Hold to Create Reminder',
-                style: TextStyle(
+            if (!_isRecording)
+              Text(
+                'press_hold_to_create_reminder'.tr(),
+                style: const TextStyle(
                   fontSize: 18,
                   color: Colors.grey,
                   fontWeight: FontWeight.w400,
@@ -685,7 +624,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Recording...',
+                      'recording'.tr(),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.grey[700],
                           ),
@@ -703,8 +642,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(width: 4),
                         Text(
                           _isSpeechListening 
-                              ? 'Speech recognition aktif' 
-                              : 'Speech recognition bekleniyor...',
+                              ? 'speech_recognition_active'.tr() 
+                              : 'speech_recognition_waiting'.tr(),
                           style: TextStyle(
                             fontSize: 12,
                             color: _isSpeechListening ? Colors.green[700] : Colors.orange[700],
@@ -716,7 +655,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (_soundLevel > 0.01) ...[
                       const SizedBox(height: 4),
                       Text(
-                        'Mikrofon çalışıyor (${(_soundLevel * 100).toStringAsFixed(0)}%)',
+                        'microphone_working'.tr(namedArgs: {'percent': (_soundLevel * 100).toStringAsFixed(0)}),
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.green[700],
@@ -756,16 +695,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     : const Color(0xFFFF6B35),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                'Speech-to-Text:',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: _transcript.isEmpty
-                                      ? Colors.grey[600]
-                                      : const Color(0xFFFF6B35),
-                                ),
-                              ),
+                            
                               if (_transcript.isNotEmpty) ...[
                                 const SizedBox(width: 8),
                                 Container(
@@ -778,7 +708,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
-                                    '✓ Çalışıyor',
+                                    'working'.tr(),
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
@@ -802,7 +732,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: Text(
                               _transcript.isEmpty
-                                  ? '🎤 Konuşun... (Speech-to-Text dinliyor)'
+                                  ? 'speak_now'.tr()
                                   : _transcript,
                               style: TextStyle(
                                 fontSize: 18,
@@ -821,7 +751,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           if (_transcript.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             Text(
-                              '${_transcript.length} karakter',
+                              'characters'.tr(namedArgs: {'count': _transcript.length.toString()}),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.grey[600],
@@ -835,61 +765,56 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-            if (_finalTranscription.isEmpty) ...[
-              const SizedBox(height: 20),
-              // 4 main buttons in a grid
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: GridView.count(
-                    shrinkWrap: true,
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.1,
-                    children: [
-                      _buildPushToTalkButton(
-                        '+1 Hour',
-                        Icons.mic,
-                        'quick_1h',
-                      ),
-                      _buildPushToTalkButton(
-                        '+10 Hours',
-                        Icons.mic,
-                        'quick_10h',
-                      ),
-                      _buildPushToTalkButton(
-                        'Tomorrow 9AM',
-                        Icons.mic,
-                        'tomorrow_9am',
-                      ),
-                      _buildPushToTalkButton(
-                        'Random',
-                        Icons.shuffle,
-                        'random',
-                      ),
-                    ],
-                  ),
+            const SizedBox(height: 20),
+            // 4 main buttons in a grid
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: GridView.count(
+                  shrinkWrap: true,
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1.1,
+                  children: [
+                    _buildPushToTalkButton(
+                      'quick_1h'.tr(),
+                      Icons.mic,
+                      'quick_1h',
+                    ),
+                    _buildPushToTalkButton(
+                      'quick_10h'.tr(),
+                      Icons.mic,
+                      'quick_10h',
+                    ),
+                    _buildPushToTalkButton(
+                      'tomorrow_9am'.tr(),
+                      Icons.mic,
+                      'tomorrow_9am',
+                    ),
+                    _buildPushToTalkButton(
+                      'random'.tr(),
+                      Icons.shuffle,
+                      'random',
+                    ),
+                  ],
                 ),
               ),
-            ] else
-              const SizedBox(height: 20),
-            if (_finalTranscription.isEmpty) ...[
-              const SizedBox(height: 20),
-              // Footer text
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.0),
-                child: Text(
-                  'Presets save instantly. Random lets you pick time',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            // Footer text
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Text(
+                'presets_info'.tr(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
                 ),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
-            ],
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),

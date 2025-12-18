@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../models/reminder.dart';
 import '../services/storage_service.dart';
 import '../services/audio_player_service.dart';
@@ -18,6 +19,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
   late TabController _tabController;
   List<Reminder> _reminders = [];
   String _selectedTab = 'active';
+  String? _currentlyPlayingPath;
 
   @override
   void initState() {
@@ -31,6 +33,21 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
         _loadReminders();
       }
     });
+    // Listen to audio player state changes
+    _audioPlayer.onPlayingStateChanged = (isPlaying) {
+      if (mounted) {
+        setState(() {
+          // If not playing, always clear the currently playing path
+          // This ensures the button returns to play icon when audio finishes
+          if (!isPlaying) {
+            print('🛑 Audio stopped, clearing _currentlyPlayingPath');
+            _currentlyPlayingPath = null;
+          }
+          // Note: We don't set _currentlyPlayingPath here when isPlaying is true
+          // because that's handled in _playAudio() method
+        });
+      }
+    };
     _loadReminders();
   }
 
@@ -58,16 +75,16 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Hatırlatıcıyı Sil'),
-        content: const Text('Bu hatırlatıcıyı silmek istediğinize emin misiniz?'),
+        title: Text('delete_reminder_title'.tr()),
+        content: Text('delete_reminder_content'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('İptal'),
+            child: Text('cancel'.tr()),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sil', style: TextStyle(color: Colors.red)),
+            child: Text('delete'.tr(), style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -78,7 +95,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
       _loadReminders();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Hatırlatıcı silindi')),
+          SnackBar(content: Text('reminder_deleted'.tr())),
         );
       }
     }
@@ -86,15 +103,33 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
 
   Future<void> _playAudio(String audioPath) async {
     print('🎵 Attempting to play audio from: $audioPath');
+    
+    // If already playing this audio, stop it
+    if (_currentlyPlayingPath == audioPath && _audioPlayer.isPlaying) {
+      await _audioPlayer.stopAudio();
+      setState(() {
+        _currentlyPlayingPath = null;
+      });
+      return;
+    }
+    
     try {
       final success = await _audioPlayer.playAudio(audioPath);
+      
+      setState(() {
+        if (success && _audioPlayer.isPlaying) {
+          _currentlyPlayingPath = audioPath;
+        } else {
+          _currentlyPlayingPath = null;
+        }
+      });
       
       if (!success || !_audioPlayer.isPlaying) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Ses çalınamadı. Dosya yolu veya ses seviyesini kontrol edin.'),
-              duration: Duration(seconds: 3),
+            SnackBar(
+              content: Text('audio_playback_failed'.tr()),
+              duration: const Duration(seconds: 3),
             ),
           );
         }
@@ -103,10 +138,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
       }
     } catch (e) {
       print('❌ Error playing audio: $e');
+      setState(() {
+        _currentlyPlayingPath = null;
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ses dosyası oynatılamadı: $e'),
+            content: Text('audio_file_playback_failed'.tr(namedArgs: {'error': e.toString()})),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -118,12 +156,12 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Arşiv / Geçmiş'),
+        title: Text('archive'.tr()),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Aktif'),
-            Tab(text: 'Tamamlanan'),
+          tabs: [
+            Tab(text: 'active'.tr()),
+            Tab(text: 'completed'.tr()),
           ],
         ),
       ),
@@ -134,8 +172,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
                 ? Center(
                     child: Text(
                       _selectedTab == 'active'
-                          ? 'Aktif hatırlatıcı yok'
-                          : 'Tamamlanan hatırlatıcı yok',
+                          ? 'no_active_reminders'.tr()
+                          : 'no_completed_reminders'.tr(),
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                   )
@@ -155,7 +193,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
   Widget _buildReminderCard(Reminder reminder) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'tr_TR');
     final transcript = reminder.transcript.isEmpty 
-        ? 'Ses kaydı (transkript yok)' 
+        ? 'audio_recording_no_transcript'.tr() 
         : reminder.transcript;
     final hasTranscript = reminder.transcript.isNotEmpty;
     
@@ -177,26 +215,36 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Text('Zaman: ${dateFormat.format(reminder.scheduledTime)}'),
-            Text('Oluşturulma: ${dateFormat.format(reminder.createdAt)}'),
+            Text('time'.tr(namedArgs: {'time': dateFormat.format(reminder.scheduledTime)})),
+            Text('created_at'.tr(namedArgs: {'time': dateFormat.format(reminder.createdAt)})),
             if (reminder.audioPath.isNotEmpty)
               const SizedBox(height: 4),
             if (reminder.audioPath.isNotEmpty)
-              const Text('🎵 Ses kaydı mevcut', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text('audio_recording_available'.tr(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              icon: const Icon(Icons.play_arrow),
-              onPressed: () => _playAudio(reminder.audioPath),
-              tooltip: 'Oynat',
-            ),
+            if (reminder.audioPath.isNotEmpty)
+              IconButton(
+                icon: Icon(
+                  _currentlyPlayingPath == reminder.audioPath
+                      ? Icons.stop
+                      : Icons.play_arrow,
+                ),
+                onPressed: () => _playAudio(reminder.audioPath),
+                tooltip: _currentlyPlayingPath == reminder.audioPath
+                    ? 'stop'.tr()
+                    : 'play'.tr(),
+                color: _currentlyPlayingPath == reminder.audioPath
+                    ? Colors.red
+                    : null,
+              ),
             IconButton(
               icon: const Icon(Icons.delete),
               onPressed: () => _deleteReminder(reminder),
-              tooltip: 'Sil',
+              tooltip: 'delete'.tr(),
               color: Colors.red,
             ),
           ],

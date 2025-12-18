@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../models/reminder.dart';
 import '../services/audio_player_service.dart';
 
@@ -54,9 +55,9 @@ class _ReminderDialogState extends State<ReminderDialog> {
         if (!success || !_isPlaying) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Ses çalınamadı. Dosya yolu veya ses seviyesini kontrol edin.'),
-                duration: Duration(seconds: 3),
+              SnackBar(
+                content: Text('audio_playback_failed'.tr()),
+                duration: const Duration(seconds: 3),
               ),
             );
           }
@@ -66,7 +67,7 @@ class _ReminderDialogState extends State<ReminderDialog> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ses dosyası oynatılamadı: $e'),
+              content: Text('audio_file_playback_failed'.tr(namedArgs: {'error': e.toString()})),
               duration: const Duration(seconds: 3),
             ),
           );
@@ -83,7 +84,7 @@ class _ReminderDialogState extends State<ReminderDialog> {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'tr_TR');
     
     return AlertDialog(
-      title: const Text('Hatırlatıcı'),
+      title: Text('reminder_title'.tr()),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,7 +103,7 @@ class _ReminderDialogState extends State<ReminderDialog> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Transkript:',
+                'transcript'.tr(),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -126,7 +127,7 @@ class _ReminderDialogState extends State<ReminderDialog> {
             ),
             child: Text(
               widget.reminder.transcript.isEmpty
-                  ? 'Ses kaydı (transkript yok)'
+                  ? 'audio_recording_no_transcript'.tr()
                   : widget.reminder.transcript,
               style: TextStyle(
                 fontSize: 16,
@@ -138,14 +139,14 @@ class _ReminderDialogState extends State<ReminderDialog> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Zaman: ${dateFormat.format(widget.reminder.scheduledTime)}'),
+          Text('time'.tr(namedArgs: {'time': dateFormat.format(widget.reminder.scheduledTime)})),
           const SizedBox(height: 8),
-          Text('Oluşturulma: ${dateFormat.format(widget.reminder.createdAt)}'),
+          Text('created_at'.tr(namedArgs: {'time': dateFormat.format(widget.reminder.createdAt)})),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             onPressed: _togglePlayback,
             icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
-            label: Text(_isPlaying ? 'Durdur' : 'Oynat'),
+            label: Text(_isPlaying ? 'stop'.tr() : 'play'.tr()),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 48),
               backgroundColor: _isPlaying ? Colors.red : Colors.blue,
@@ -160,7 +161,7 @@ class _ReminderDialogState extends State<ReminderDialog> {
                 Icon(Icons.volume_up, size: 16, color: Colors.green[700]),
                 const SizedBox(width: 4),
                 Text(
-                  'Ses çalınıyor...',
+                  'audio_playing'.tr(),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.green[700],
@@ -175,7 +176,7 @@ class _ReminderDialogState extends State<ReminderDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Kapat'),
+          child: Text('close'.tr()),
         ),
       ],
     );
