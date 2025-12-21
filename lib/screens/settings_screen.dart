@@ -123,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         contentPadding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
                         title: Text(
-                          sound,
+                          sound.tr(),
                           style: TextStyle(fontSize: su.sp(14)),
                         ),
                         value: sound,
