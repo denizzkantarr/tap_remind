@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../models/reminder.dart';
 import '../services/audio_player_service.dart';
+import '../utils/screen_util.dart';
 
 class ReminderDialog extends StatefulWidget {
   final Reminder reminder;
@@ -81,10 +82,17 @@ class _ReminderDialogState extends State<ReminderDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final su = ScreenUtil.of(context);
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'tr_TR');
     
     return AlertDialog(
-      title: Text('reminder_title'.tr()),
+      title: Text(
+        'reminder_title'.tr(),
+        style: TextStyle(
+          fontSize: su.sp(18),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,33 +104,33 @@ class _ReminderDialogState extends State<ReminderDialog> {
                 widget.reminder.transcript.isEmpty
                     ? Icons.mic
                     : Icons.text_fields,
-                size: 20,
+                size: su.sp(20),
                 color: widget.reminder.transcript.isEmpty
                     ? Colors.grey
                     : const Color(0xFFFF6B35),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: su.w(8)),
               Text(
                 'transcript'.tr(),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: su.sp(14),
                   fontWeight: FontWeight.w600,
                   color: Colors.grey[600],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: su.h(8)),
           // Transkript içeriği
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(su.r(12)),
             decoration: BoxDecoration(
               color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(su.r(8)),
               border: Border.all(
                 color: Colors.grey[300]!,
-                width: 1,
+                width: su.w(1),
               ),
             ),
             child: Text(
@@ -130,7 +138,7 @@ class _ReminderDialogState extends State<ReminderDialog> {
                   ? 'audio_recording_no_transcript'.tr()
                   : widget.reminder.transcript,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: su.sp(16),
                 fontWeight: FontWeight.w500,
                 color: widget.reminder.transcript.isEmpty
                     ? Colors.grey[600]
@@ -138,32 +146,48 @@ class _ReminderDialogState extends State<ReminderDialog> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text('time'.tr(namedArgs: {'time': dateFormat.format(widget.reminder.scheduledTime)})),
-          const SizedBox(height: 8),
-          Text('created_at'.tr(namedArgs: {'time': dateFormat.format(widget.reminder.createdAt)})),
-          const SizedBox(height: 16),
+          SizedBox(height: su.h(16)),
+          Text(
+            'time'.tr(
+              namedArgs: {'time': dateFormat.format(widget.reminder.scheduledTime)},
+            ),
+            style: TextStyle(fontSize: su.sp(14)),
+          ),
+          SizedBox(height: su.h(8)),
+          Text(
+            'created_at'.tr(
+              namedArgs: {'time': dateFormat.format(widget.reminder.createdAt)},
+            ),
+            style: TextStyle(fontSize: su.sp(14)),
+          ),
+          SizedBox(height: su.h(16)),
           ElevatedButton.icon(
             onPressed: _togglePlayback,
-            icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
-            label: Text(_isPlaying ? 'stop'.tr() : 'play'.tr()),
+            icon: Icon(
+              _isPlaying ? Icons.stop : Icons.play_arrow,
+              size: su.sp(20),
+            ),
+            label: Text(
+              _isPlaying ? 'stop'.tr() : 'play'.tr(),
+              style: TextStyle(fontSize: su.sp(15)),
+            ),
             style: ElevatedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 48),
+              minimumSize: Size(double.infinity, su.h(48)),
               backgroundColor: _isPlaying ? Colors.red : Colors.blue,
               foregroundColor: Colors.white,
             ),
           ),
           if (_isPlaying) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: su.h(8)),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.volume_up, size: 16, color: Colors.green[700]),
-                const SizedBox(width: 4),
+                Icon(Icons.volume_up, size: su.sp(16), color: Colors.green[700]),
+                SizedBox(width: su.w(4)),
                 Text(
                   'audio_playing'.tr(),
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: su.sp(12),
                     color: Colors.green[700],
                     fontStyle: FontStyle.italic,
                   ),
@@ -176,7 +200,10 @@ class _ReminderDialogState extends State<ReminderDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('close'.tr()),
+          child: Text(
+            'close'.tr(),
+            style: TextStyle(fontSize: su.sp(14)),
+          ),
         ),
       ],
     );

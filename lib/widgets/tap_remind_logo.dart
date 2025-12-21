@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/screen_util.dart';
 
 class TapRemindLogo extends StatelessWidget {
   final double? size;
@@ -12,7 +13,12 @@ class TapRemindLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const iconSize = 40.0;
+    final su = ScreenUtil.of(context);
+    final resolvedSize = size ?? su.w(40);
+    final gap = su.w(12);
+    final textSize = su.sp(24);
+    final fallbackRadius = su.r(12);
+    final fallbackIconSize = su.sp(24);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -20,33 +26,33 @@ class TapRemindLogo extends StatelessWidget {
         // Logo image
         Image.asset(
           'assets/images/logo.png',
-          width: size ?? iconSize,
-          height: size ?? iconSize,
+          width: resolvedSize,
+          height: resolvedSize,
           fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) {
             // Fallback if image is not found
             return Container(
-              width: size ?? iconSize,
-              height: size ?? iconSize,
+              width: resolvedSize,
+              height: resolvedSize,
               decoration: BoxDecoration(
                 color: const Color(0xFFFF6B35),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(fallbackRadius),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.notifications,
                 color: Colors.white,
-                size: 24,
+                size: fallbackIconSize,
               ),
             );
           },
         ),
         if (showText) ...[
-          const SizedBox(width: 12),
+          SizedBox(width: gap),
           // Text
-          const Text(
+          Text(
             'TapRemind',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: textSize,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
               letterSpacing: -0.5,

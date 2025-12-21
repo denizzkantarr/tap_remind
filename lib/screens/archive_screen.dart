@@ -5,6 +5,7 @@ import '../models/reminder.dart';
 import '../services/storage_service.dart';
 import '../services/audio_player_service.dart';
 import 'reminder_dialog.dart';
+import '../utils/screen_util.dart';
 
 class ArchiveScreen extends StatefulWidget {
   const ArchiveScreen({super.key});
@@ -72,25 +73,26 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
   }
 
   Future<void> _deleteReminder(Reminder reminder) async {
+    final su = ScreenUtil.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(su.r(16)),
         ),
         title: Row(
           children: [
             Icon(
               Icons.warning_amber_rounded,
               color: Colors.red[600],
-              size: 28,
+              size: su.sp(28),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: su.w(12)),
             Expanded(
               child: Text(
                 'delete_reminder_title'.tr(),
-                style: const TextStyle(
-                  fontSize: 20,
+                style: TextStyle(
+                  fontSize: su.sp(20),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -99,17 +101,20 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
         ),
         content: Text(
           'delete_reminder_content'.tr(),
-          style: const TextStyle(fontSize: 16),
+          style: TextStyle(fontSize: su.sp(16)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: su.w(24),
+                vertical: su.h(12),
+              ),
             ),
             child: Text(
               'cancel'.tr(),
-              style: const TextStyle(fontSize: 16),
+              style: TextStyle(fontSize: su.sp(16)),
             ),
           ),
           ElevatedButton(
@@ -117,14 +122,20 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: su.w(24),
+                vertical: su.h(12),
+              ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(su.r(8)),
               ),
             ),
             child: Text(
               'delete'.tr(),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: su.sp(16),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -195,11 +206,19 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final su = ScreenUtil.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text('archive'.tr()),
         bottom: TabBar(
           controller: _tabController,
+          labelStyle: TextStyle(
+            fontSize: su.sp(14),
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: TextStyle(
+            fontSize: su.sp(14),
+          ),
           tabs: [
             Tab(text: 'active'.tr()),
             Tab(text: 'completed'.tr()),
@@ -232,6 +251,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
   }
 
   Widget _buildReminderCard(Reminder reminder) {
+    final su = ScreenUtil.of(context);
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm', 'tr_TR');
     final transcript = reminder.transcript.isEmpty 
         ? 'audio_recording_no_transcript'.tr() 
@@ -248,24 +268,27 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
         );
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: EdgeInsets.symmetric(
+          horizontal: su.w(16),
+          vertical: su.h(8),
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(su.r(16)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+              blurRadius: su.r(10),
+              offset: Offset(0, su.h(2)),
             ),
           ],
           border: Border.all(
             color: hasTranscript ? const Color(0xFFFF6B35).withOpacity(0.3) : Colors.grey.withOpacity(0.2),
-            width: 1,
+            width: su.w(1),
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(su.r(16)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -275,23 +298,23 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
                   hasTranscript
                       ? Image.asset(
                           'assets/images/logoBell.png',
-                          width: 48,
-                          height: 48,
+                          width: su.w(48),
+                          height: su.w(48),
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             return Icon(
                               Icons.text_fields,
                               color: const Color(0xFFFF6B35),
-                              size: 24,
+                              size: su.sp(24),
                             );
                           },
                         )
                       : Icon(
                           Icons.mic,
                           color: Colors.grey[600],
-                          size: 24,
+                          size: su.sp(24),
                         ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: su.w(12)),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +322,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
                         Text(
                           transcript,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: su.sp(16),
                             fontWeight: FontWeight.w600,
                             color: hasTranscript ? Colors.black87 : Colors.grey[600],
                             height: 1.3,
@@ -308,19 +331,19 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (reminder.audioPath.isNotEmpty) ...[
-                          const SizedBox(height: 4),
+                          SizedBox(height: su.h(4)),
                           Row(
                             children: [
                               Icon(
                                 Icons.audiotrack,
-                                size: 14,
+                                size: su.sp(14),
                                 color: Colors.grey[600],
                               ),
-                              const SizedBox(width: 4),
+                              SizedBox(width: su.w(4)),
                               Text(
                                 'audio_recording_available'.tr(),
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: su.sp(12),
                                   color: Colors.grey[600],
                                 ),
                               ),
@@ -350,48 +373,48 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
                     ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: su.h(16)),
               // Divider
               Divider(
                 height: 1,
-                thickness: 1,
+                thickness: su.h(1),
                 color: Colors.grey.withOpacity(0.2),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: su.h(12)),
               // Date and time info
               Row(
                 children: [
                   Icon(
                     Icons.access_time,
-                    size: 16,
+                    size: su.sp(16),
                     color: Colors.grey[600],
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: su.w(6)),
                   Expanded(
                     child: Text(
                       'time'.tr(namedArgs: {'time': dateFormat.format(reminder.scheduledTime)}),
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: su.sp(13),
                         color: Colors.grey[700],
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: su.h(6)),
               Row(
                 children: [
                   Icon(
                     Icons.calendar_today,
-                    size: 16,
+                    size: su.sp(16),
                     color: Colors.grey[600],
                   ),
-                  const SizedBox(width: 6),
+                  SizedBox(width: su.w(6)),
                   Expanded(
                     child: Text(
                       'created_at'.tr(namedArgs: {'time': dateFormat.format(reminder.createdAt)}),
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: su.sp(13),
                         color: Colors.grey[700],
                       ),
                     ),
@@ -399,19 +422,19 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
                 ],
               ),
               // Long press hint
-              const SizedBox(height: 12),
+              SizedBox(height: su.h(12)),
               Row(
                 children: [
                   Icon(
                     Icons.info_outline,
-                    size: 14,
+                    size: su.sp(14),
                     color: Colors.grey[400],
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: su.w(4)),
                   Text(
                     'long_press_to_delete'.tr(),
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: su.sp(11),
                       color: Colors.grey[400],
                       fontStyle: FontStyle.italic,
                     ),

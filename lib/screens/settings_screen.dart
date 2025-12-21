@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
-import '../services/notification_service.dart';
+import '../utils/screen_util.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,7 +14,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const String _settingsBoxName = 'settings';
   static const String _soundKey = 'notification_sound';
   static const String _languageKey = 'language';
-  final NotificationService _notificationService = NotificationService();
 
   final List<String> _soundOptions = [
     'Varsayılan',
@@ -77,31 +76,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final su = ScreenUtil.of(context);
     return Scaffold(
       appBar: AppBar(title: Text('settings'.tr())),
       body: ListView(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(su.r(16)),
             child: Text(
               'notification_settings'.tr(),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: su.sp(20),
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           ListTile(
-            title: Text('notification_sound'.tr()),
-            subtitle: Text(_selectedSound),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            contentPadding: EdgeInsets.symmetric(horizontal: su.w(16)),
+            title: Text(
+              'notification_sound'.tr(),
+              style: TextStyle(
+                fontSize: su.sp(16),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              _selectedSound,
+              style: TextStyle(fontSize: su.sp(14)),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios, size: su.sp(16)),
             onTap: () {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: Text('select_notification_sound'.tr()),
+                  title: Text(
+                    'select_notification_sound'.tr(),
+                    style: TextStyle(
+                      fontSize: su.sp(16),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: _soundOptions.map((sound) {
                       return RadioListTile<String>(
-                        title: Text(sound),
+                        contentPadding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        title: Text(
+                          sound,
+                          style: TextStyle(fontSize: su.sp(14)),
+                        ),
                         value: sound,
                         groupValue: _selectedSound,
                         onChanged: (value) {
@@ -118,21 +142,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            title: Text('language'.tr()),
+            contentPadding: EdgeInsets.symmetric(horizontal: su.w(16)),
+            title: Text(
+              'language'.tr(),
+              style: TextStyle(
+                fontSize: su.sp(16),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             subtitle: Text(
               _selectedLanguage == 'en' ? 'english'.tr() : 'turkish'.tr(),
+              style: TextStyle(fontSize: su.sp(14)),
             ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            trailing: Icon(Icons.arrow_forward_ios, size: su.sp(16)),
             onTap: () {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: Text('select_language'.tr()),
+                  title: Text(
+                    'select_language'.tr(),
+                    style: TextStyle(
+                      fontSize: su.sp(16),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       RadioListTile<String>(
-                        title: Text('turkish'.tr()),
+                        contentPadding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        title: Text(
+                          'turkish'.tr(),
+                          style: TextStyle(fontSize: su.sp(14)),
+                        ),
                         value: 'tr',
                         groupValue: _selectedLanguage,
                         onChanged: (value) {
@@ -143,7 +186,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         },
                       ),
                       RadioListTile<String>(
-                        title: Text('english'.tr()),
+                        contentPadding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        title: Text(
+                          'english'.tr(),
+                          style: TextStyle(fontSize: su.sp(14)),
+                        ),
                         value: 'en',
                         groupValue: _selectedLanguage,
                         onChanged: (value) {
@@ -159,8 +207,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
-          const Divider(),
-          Padding(
+          Divider(thickness: su.h(1)),
+         /* Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
               'Test'.tr(), // istersen direkt 'Test' de yazabilirsin
@@ -193,15 +241,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
             },
           ),
-
+*/
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(su.r(16)),
             child: Text(
               'about'.tr(),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: su.sp(20),
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          ListTile(title: Text('version'.tr()), subtitle: const Text('1.0.0')),
+          ListTile(
+            contentPadding: EdgeInsets.symmetric(horizontal: su.w(16)),
+            title: Text(
+              'version'.tr(),
+              style: TextStyle(fontSize: su.sp(16)),
+            ),
+            subtitle: Text(
+              '1.0.0',
+              style: TextStyle(fontSize: su.sp(14)),
+            ),
+          ),
         ],
       ),
     );

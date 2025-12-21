@@ -13,6 +13,7 @@ import '../services/notification_service.dart';
 import '../widgets/tap_remind_logo.dart';
 import 'archive_screen.dart';
 import 'settings_screen.dart';
+import '../utils/screen_util.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -652,12 +653,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final su = ScreenUtil.of(context);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const TapRemindLogo(size: 160, showText: false),
+        title: TapRemindLogo(size: su.w(160), showText: false),
         actions: [
           IconButton(
             icon: const Icon(Icons.list, color: Colors.black87),
@@ -682,20 +684,20 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 40),
+            SizedBox(height: su.h(40)),
             // Main instruction text
             if (!_isRecording)
               Text(
                 'press_hold_to_create_reminder'.tr(),
-                style: const TextStyle(
-                  fontSize: 18,
+                style: TextStyle(
+                  fontSize: su.sp(18),
                   color: Colors.grey,
                   fontWeight: FontWeight.w400,
                 ),
               )
             else if (_isRecording)
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(su.r(16)),
                 child: Column(
                   children: [
                     const CircularProgressIndicator(
@@ -703,32 +705,38 @@ class _HomeScreenState extends State<HomeScreen> {
                         Color(0xFFFF6B35),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: su.h(16)),
                     Text(
                       'recording'.tr(),
                       style: Theme.of(
                         context,
-                      ).textTheme.titleLarge?.copyWith(color: Colors.grey[700]),
+                      ).textTheme.titleLarge?.copyWith(
+                            color: Colors.grey[700],
+                            fontSize: su.sp(
+                              Theme.of(context).textTheme.titleLarge?.fontSize ??
+                                  20,
+                            ),
+                          ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: su.h(8)),
                     // Show speech recognition status
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           _isSpeechListening ? Icons.check_circle : Icons.error,
-                          size: 16,
+                          size: su.sp(16),
                           color: _isSpeechListening
                               ? Colors.green
                               : Colors.orange,
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: su.w(4)),
                         Text(
                           _isSpeechListening
                               ? 'speech_recognition_active'.tr()
                               : 'speech_recognition_waiting'.tr(),
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: su.sp(12),
                             color: _isSpeechListening
                                 ? Colors.green[700]
                                 : Colors.orange[700],
@@ -738,7 +746,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     // Show microphone level
                     if (_soundLevel > 0.01) ...[
-                      const SizedBox(height: 4),
+                      SizedBox(height: su.h(4)),
                       Text(
                         'microphone_working'.tr(
                           namedArgs: {
@@ -746,22 +754,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         ),
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: su.sp(11),
                           color: Colors.green[700],
                           fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
-                    const SizedBox(height: 24),
+                    SizedBox(height: su.h(24)),
                     // Transkript gösterimi - her zaman göster
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(su.r(16)),
                       decoration: BoxDecoration(
                         color: _transcript.isEmpty
                             ? Colors.grey[50]
                             : Colors.blue[50],
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(su.r(12)),
                         border: Border.all(
                           color: _transcript.isEmpty
                               ? Colors.grey[300]!
@@ -777,40 +785,42 @@ class _HomeScreenState extends State<HomeScreen> {
                               _transcript.isEmpty
                                   ? Icon(
                                       Icons.mic,
-                                      size: 18,
+                                      size: su.sp(18),
                                       color: Colors.grey[600],
                                     )
                                   : Image.asset(
                                       'assets/images/logoBell.png',
-                                      width: 18,
-                                      height: 18,
+                                      width: su.w(18),
+                                      height: su.w(18),
                                       fit: BoxFit.contain,
                                       errorBuilder:
                                           (context, error, stackTrace) {
                                             return Icon(
                                               Icons.text_fields,
-                                              size: 18,
+                                              size: su.sp(18),
                                               color: const Color(0xFFFF6B35),
                                             );
                                           },
                                     ),
-                              const SizedBox(width: 8),
+                              SizedBox(width: su.w(8)),
 
                               if (_transcript.isNotEmpty) ...[
-                                const SizedBox(width: 8),
+                                SizedBox(width: su.w(8)),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: su.w(8),
+                                    vertical: su.h(2),
                                   ),
                                   decoration: BoxDecoration(
                                     color: Colors.green[100],
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(
+                                      su.r(12),
+                                    ),
                                   ),
                                   child: Text(
                                     'working'.tr(),
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: su.sp(10),
                                       fontWeight: FontWeight.w600,
                                       color: Colors.green[800],
                                     ),
@@ -819,23 +829,23 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: su.h(12)),
                           // Transkript metni - daha büyük ve belirgin
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(12),
+                            padding: EdgeInsets.all(su.r(12)),
                             decoration: BoxDecoration(
                               color: _transcript.isEmpty
                                   ? Colors.transparent
                                   : Colors.white,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(su.r(8)),
                             ),
                             child: Text(
                               _transcript.isEmpty
                                   ? 'speak_now'.tr()
                                   : _transcript,
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: su.sp(18),
                                 color: _transcript.isEmpty
                                     ? Colors.grey[500]
                                     : Colors.black87,
@@ -849,7 +859,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           if (_transcript.isNotEmpty) ...[
-                            const SizedBox(height: 8),
+                            SizedBox(height: su.h(8)),
                             Text(
                               'characters'.tr(
                                 namedArgs: {
@@ -857,7 +867,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 },
                               ),
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: su.sp(11),
                                 color: Colors.grey[600],
                                 fontStyle: FontStyle.italic,
                               ),
@@ -869,17 +879,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-            const SizedBox(height: 20),
+            SizedBox(height: su.h(20)),
             // 4 main buttons in a grid
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: EdgeInsets.symmetric(horizontal: su.w(24)),
                 child: GridView.count(
                   shrinkWrap: true,
                   crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1.1,
+                  crossAxisSpacing: su.w(16),
+                  mainAxisSpacing: su.h(16),
+                  childAspectRatio: su.isTablet ? 1.2 : 1.05,
                   children: [
                     _buildPushToTalkButton(
                       'quick_1h'.tr(),
@@ -905,17 +915,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: su.h(20)),
             // Footer text
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: EdgeInsets.symmetric(horizontal: su.w(24)),
               child: Text(
                 'presets_info'.tr(),
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: su.sp(12),
+                  color: Colors.grey,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: su.h(40)),
           ],
         ),
       ),
@@ -927,6 +940,7 @@ class _HomeScreenState extends State<HomeScreen> {
     IconData icon,
     String buttonType,
   ) {
+    final su = ScreenUtil.of(context);
     const orangeColor = Color(0xFFFF6B35);
     final isActive = _isRecording && _currentButtonType == buttonType;
 
@@ -937,21 +951,21 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(su.r(20)),
           border: isActive
-              ? Border.all(color: orangeColor, width: 3)
-              : Border.all(color: Colors.grey[300]!, width: 1),
+              ? Border.all(color: orangeColor, width: su.w(3))
+              : Border.all(color: Colors.grey[300]!, width: su.w(1)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 32, color: orangeColor),
-            const SizedBox(height: 12),
+            Icon(icon, size: su.sp(32), color: orangeColor),
+            SizedBox(height: su.h(12)),
             Text(
               label,
               style: TextStyle(
                 color: Colors.black87,
-                fontSize: 16,
+                fontSize: su.sp(16),
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
