@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,6 +14,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const String _settingsBoxName = 'settings';
   static const String _soundKey = 'notification_sound';
   static const String _languageKey = 'language';
+  final NotificationService _notificationService = NotificationService();
 
   final List<String> _soundOptions = [
     'Varsayılan',
@@ -45,48 +47,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _selectedSound = sound;
     });
-    
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('settings_saved'.tr())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('settings_saved'.tr())));
     }
   }
 
   Future<void> _saveLanguageSetting(String languageCode) async {
     final settingsBox = Hive.box(_settingsBoxName);
     await settingsBox.put(_languageKey, languageCode);
-    
+
     // Change app locale
-    await context.setLocale(languageCode == 'en' ? const Locale('en') : const Locale('tr'));
-    
+    await context.setLocale(
+      languageCode == 'en' ? const Locale('en') : const Locale('tr'),
+    );
+
     setState(() {
       _selectedLanguage = languageCode;
     });
-    
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('settings_saved'.tr())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('settings_saved'.tr())));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('settings'.tr()),
-      ),
+      appBar: AppBar(title: Text('settings'.tr())),
       body: ListView(
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
               'notification_settings'.tr(),
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
           ListTile(
@@ -120,7 +119,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             title: Text('language'.tr()),
-            subtitle: Text(_selectedLanguage == 'en' ? 'english'.tr() : 'turkish'.tr()),
+            subtitle: Text(
+              _selectedLanguage == 'en' ? 'english'.tr() : 'turkish'.tr(),
+            ),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
               showDialog(
@@ -162,20 +163,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Text(
-              'about'.tr(),
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              'Test'.tr(), // istersen direkt 'Test' de yazabilirsin
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
           ListTile(
-            title: Text('version'.tr()),
-            subtitle: const Text('1.0.0'),
+            leading: const Icon(Icons.notifications_active),
+            title: const Text('iOS Foreground Bildirim Testi'),
+            subtitle: const Text('Uygulama AÇIKKEN banner/ses geliyor mu?'),
+            trailing: const Icon(Icons.play_arrow),
+            onTap: () async {
+              try {
+                await _notificationService.clearAllIosNotifications();
+                await _notificationService.testForegroundNow();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Test bildirimi tetiklendi ✅'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Test hatası: $e')));
+                }
+              }
+            },
           ),
+
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'about'.tr(),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          ListTile(title: Text('version'.tr()), subtitle: const Text('1.0.0')),
         ],
       ),
     );
   }
 }
-

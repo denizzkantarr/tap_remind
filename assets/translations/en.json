@@ -24,7 +24,7 @@
   "microphone_working": "Microphone working ({percent}%)",
   "speech_to_text": "Speech-to-Text:",
   "working": "✓ Active",
-  "speak_now": "🎤 Speak now... (Speech-to-Text listening)",
+  "speak_now": "🎤 Speak now... ",
   "characters": "{count} characters",
   "quick_1h": "+1 Hour",
   "quick_10h": "+10 Hours",
@@ -68,5 +68,6 @@
   "transcript": "Transcript:",
   "audio_recording_no_transcript": "Audio recording (no transcript)",
   "audio_playing": "Audio playing...",
-  "close": "Close"
+  "close": "Close",
+  "long_press_to_delete": "Long press to delete"
 }

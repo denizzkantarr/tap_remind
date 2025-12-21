@@ -24,7 +24,7 @@
   "microphone_working": "Mikrofon çalışıyor ({percent}%)",
   "speech_to_text": "Speech-to-Text:",
   "working": "✓ Çalışıyor",
-  "speak_now": "🎤 Konuşun... (Speech-to-Text dinliyor)",
+  "speak_now": "🎤 Konuşun...",
   "characters": "{count} karakter",
   "quick_1h": "+1 Saat",
   "quick_10h": "+10 Saat",
@@ -68,5 +68,6 @@
   "transcript": "Transkript:",
   "audio_recording_no_transcript": "Ses kaydı (transkript yok)",
   "audio_playing": "Ses çalınıyor...",
-  "close": "Kapat"
+  "close": "Kapat",
+  "long_press_to_delete": "Uzun basarak sil"
 }

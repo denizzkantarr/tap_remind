@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:permission_handler/permission_handler.dart';
@@ -7,17 +9,44 @@ import '../models/reminder.dart';
 import '../main.dart';
 import '../screens/reminder_dialog.dart';
 import 'storage_service.dart';
+import 'package:flutter/services.dart';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
+  static const _iosChannel = MethodChannel('notif_channel');
 
   Future<void> initialize() async {
     if (_isInitialized) return;
 
+    // Android 13+ requires runtime notification permission
+    if (Platform.isAndroid) {
+      final notifStatus = await Permission.notification.status;
+      if (!notifStatus.isGranted) {
+        final result = await Permission.notification.request();
+        print('🔔 Notification permission request result: $result');
+        if (!result.isGranted) {
+          print(
+            '⚠️ Notification permission not granted; notifications may be blocked.',
+          );
+        }
+      }
+    }
+    final ios = _notifications
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
+
+    final granted = await ios?.requestPermissions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    print('🍏 iOS permission granted: $granted');
     const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
+      'logobell', // Bildirimlerde gösterilecek küçük ikon
     );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -51,6 +80,45 @@ class NotificationService {
     // permission_handler ile çakışmaması için burada kontrol etmiyoruz
 
     _isInitialized = true;
+  }
+
+  Future<void> testForegroundNow() async {
+    if (!_isInitialized) await initialize();
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentSound: true,
+      presentBadge: true,
+    );
+
+    const androidDetails = AndroidNotificationDetails(
+      'reminder_channel',
+      'Hatırlatıcılar',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const details = NotificationDetails(
+      iOS: iosDetails,
+      android: androidDetails,
+    );
+
+    await _notifications.show(
+      999999,
+      'Foreground Test',
+      'App açıkken banner görünüyor mu?',
+      details,
+    );
+  }
+
+  Future<void> clearAllIosNotifications() async {
+    await _notifications.cancelAll(); // Flutter plugin pending
+
+    if (Platform.isIOS) {
+      await _iosChannel.invokeMethod(
+        'clearDelivered',
+      ); // ✅ native delivered+pending
+    }
   }
 
   Future<void> _onNotificationTapped(NotificationResponse response) async {
@@ -124,9 +192,13 @@ class NotificationService {
         : tz.TZDateTime.from(reminder.scheduledTime, location);
 
     final now = tz.TZDateTime.now(location);
+    final tz.TZDateTime targetDate = scheduledDate.isBefore(now)
+        ? now.add(const Duration(seconds: 10))
+        : scheduledDate;
     if (scheduledDate.isBefore(now)) {
-      print('Warning: Scheduled time is in the past: $scheduledDate');
-      return;
+      print(
+        'Warning: Scheduled time is in the past ($scheduledDate). Auto-adjusting to $targetDate',
+      );
     }
 
     // Debug: zamanları hem local hem UTC olarak göster
@@ -140,7 +212,7 @@ class NotificationService {
       '  Time difference: ${diff.inSeconds} seconds (${diff.inMinutes} minutes / ${(diff.inMinutes / 60).toStringAsFixed(1)} hours)',
     );
 
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'reminder_channel',
       'Hatırlatıcılar',
       channelDescription: 'Sesli hatırlatıcı bildirimleri',
@@ -149,7 +221,10 @@ class NotificationService {
       playSound: true,
       enableVibration: true,
       showWhen: true,
-      icon: '@mipmap/ic_launcher', // Uygulama logosunu bildirimlerde göster
+      icon: 'logobell', // Küçük ikon
+      largeIcon: const DrawableResourceAndroidBitmap(
+        'logobell',
+      ), // Banner'da gösterilecek büyük logo
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -158,7 +233,7 @@ class NotificationService {
       presentSound: true,
     );
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
@@ -180,7 +255,7 @@ class NotificationService {
         reminder.id.hashCode,
         'Hatırlatıcı',
         reminder.transcript.isEmpty ? 'Sesli hatırlatıcı' : reminder.transcript,
-        scheduledDate, // ✅ TZDateTime
+        targetDate, // ✅ TZDateTime (adjusted if needed)
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
@@ -235,7 +310,7 @@ class NotificationService {
       await initialize();
     }
 
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'reminder_channel',
       'Hatırlatıcılar',
       channelDescription: 'Sesli hatırlatıcı bildirimleri',
@@ -243,7 +318,10 @@ class NotificationService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      icon: '@mipmap/ic_launcher', // Uygulama logosunu bildirimlerde göster
+      icon: 'logobell', // Küçük ikon
+      largeIcon: const DrawableResourceAndroidBitmap(
+        'logobell',
+      ), // Banner'da gösterilecek büyük logo
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -252,7 +330,7 @@ class NotificationService {
       presentSound: true,
     );
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );

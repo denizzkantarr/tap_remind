@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class SpeechService {
@@ -11,6 +14,19 @@ class SpeechService {
     if (_isInitialized) {
       print('✅ Speech service already initialized');
       return true;
+    }
+
+    // Android requires runtime microphone permission
+    if (Platform.isAndroid) {
+      final micStatus = await Permission.microphone.status;
+      if (!micStatus.isGranted) {
+        final result = await Permission.microphone.request();
+        print('🎤 Microphone permission (Android) request result: $result');
+        if (!result.isGranted) {
+          print('❌ Microphone permission not granted. Speech init aborted.');
+          return false;
+        }
+      }
     }
 
     // iOS'ta speech recognition izni speech.listen() çağrıldığında otomatik istenir

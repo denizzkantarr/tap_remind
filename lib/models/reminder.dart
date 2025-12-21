@@ -11,7 +11,7 @@ class Reminder extends HiveObject {
   final String transcript;
 
   @HiveField(2)
-  final String audioPath;
+  final String audioPath; // Empty string on Android when recording is skipped
 
   @HiveField(3)
   final DateTime scheduledTime;

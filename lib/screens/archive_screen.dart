@@ -75,16 +75,57 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('delete_reminder_title'.tr()),
-        content: Text('delete_reminder_content'.tr()),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.red[600],
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'delete_reminder_title'.tr(),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'delete_reminder_content'.tr(),
+          style: const TextStyle(fontSize: 16),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('cancel'.tr()),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: Text(
+              'cancel'.tr(),
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('delete'.tr(), style: const TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'delete'.tr(),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -196,65 +237,190 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
         ? 'audio_recording_no_transcript'.tr() 
         : reminder.transcript;
     final hasTranscript = reminder.transcript.isNotEmpty;
+    final isPlaying = _currentlyPlayingPath == reminder.audioPath && _audioPlayer.isPlaying;
     
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        leading: hasTranscript
-            ? const Icon(Icons.text_fields, color: Color(0xFFFF6B35))
-            : const Icon(Icons.mic, color: Colors.grey),
-        title: Text(
-          transcript,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: hasTranscript ? Colors.black87 : Colors.grey[600],
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text('time'.tr(namedArgs: {'time': dateFormat.format(reminder.scheduledTime)})),
-            Text('created_at'.tr(namedArgs: {'time': dateFormat.format(reminder.createdAt)})),
-            if (reminder.audioPath.isNotEmpty)
-              const SizedBox(height: 4),
-            if (reminder.audioPath.isNotEmpty)
-              Text('audio_recording_available'.tr(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (reminder.audioPath.isNotEmpty)
-              IconButton(
-                icon: Icon(
-                  _currentlyPlayingPath == reminder.audioPath
-                      ? Icons.stop
-                      : Icons.play_arrow,
-                ),
-                onPressed: () => _playAudio(reminder.audioPath),
-                tooltip: _currentlyPlayingPath == reminder.audioPath
-                    ? 'stop'.tr()
-                    : 'play'.tr(),
-                color: _currentlyPlayingPath == reminder.audioPath
-                    ? Colors.red
-                    : null,
-              ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () => _deleteReminder(reminder),
-              tooltip: 'delete'.tr(),
-              color: Colors.red,
+    return GestureDetector(
+      onLongPress: () => _deleteReminder(reminder),
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => ReminderDialog(reminder: reminder),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
           ],
+          border: Border.all(
+            color: hasTranscript ? const Color(0xFFFF6B35).withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+            width: 1,
+          ),
         ),
-        onTap: () {
-          showDialog(
-            context: context,
-            builder: (context) => ReminderDialog(reminder: reminder),
-          );
-        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row with icon and status
+              Row(
+                children: [
+                  hasTranscript
+                      ? Image.asset(
+                          'assets/images/logoBell.png',
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.text_fields,
+                              color: const Color(0xFFFF6B35),
+                              size: 24,
+                            );
+                          },
+                        )
+                      : Icon(
+                          Icons.mic,
+                          color: Colors.grey[600],
+                          size: 24,
+                        ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          transcript,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: hasTranscript ? Colors.black87 : Colors.grey[600],
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (reminder.audioPath.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.audiotrack,
+                                size: 14,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'audio_recording_available'.tr(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  // Play button
+                  if (reminder.audioPath.isNotEmpty)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isPlaying 
+                            ? Colors.red.withOpacity(0.1)
+                            : const Color(0xFFFF6B35).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          isPlaying ? Icons.stop : Icons.play_arrow,
+                          color: isPlaying ? Colors.red : const Color(0xFFFF6B35),
+                        ),
+                        onPressed: () => _playAudio(reminder.audioPath),
+                        tooltip: isPlaying ? 'stop'.tr() : 'play'.tr(),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Divider
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: Colors.grey.withOpacity(0.2),
+              ),
+              const SizedBox(height: 12),
+              // Date and time info
+              Row(
+                children: [
+                  Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'time'.tr(namedArgs: {'time': dateFormat.format(reminder.scheduledTime)}),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'created_at'.tr(namedArgs: {'time': dateFormat.format(reminder.createdAt)}),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // Long press hint
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 14,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'long_press_to_delete'.tr(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[400],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
