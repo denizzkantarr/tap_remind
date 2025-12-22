@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -161,39 +162,41 @@ class _ReminderDialogState extends State<ReminderDialog> {
             style: TextStyle(fontSize: su.sp(14)),
           ),
           SizedBox(height: su.h(16)),
-          ElevatedButton.icon(
-            onPressed: _togglePlayback,
-            icon: Icon(
-              _isPlaying ? Icons.stop : Icons.play_arrow,
-              size: su.sp(20),
+          if (!Platform.isAndroid) ...[
+            ElevatedButton.icon(
+              onPressed: _togglePlayback,
+              icon: Icon(
+                _isPlaying ? Icons.stop : Icons.play_arrow,
+                size: su.sp(20),
+              ),
+              label: Text(
+                _isPlaying ? 'stop'.tr() : 'play'.tr(),
+                style: TextStyle(fontSize: su.sp(15)),
+              ),
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size(double.infinity, su.h(48)),
+                backgroundColor: _isPlaying ? Colors.red : Colors.blue,
+                foregroundColor: Colors.white,
+              ),
             ),
-            label: Text(
-              _isPlaying ? 'stop'.tr() : 'play'.tr(),
-              style: TextStyle(fontSize: su.sp(15)),
-            ),
-            style: ElevatedButton.styleFrom(
-              minimumSize: Size(double.infinity, su.h(48)),
-              backgroundColor: _isPlaying ? Colors.red : Colors.blue,
-              foregroundColor: Colors.white,
-            ),
-          ),
-          if (_isPlaying) ...[
-            SizedBox(height: su.h(8)),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.volume_up, size: su.sp(16), color: Colors.green[700]),
-                SizedBox(width: su.w(4)),
-                Text(
-                  'audio_playing'.tr(),
-                  style: TextStyle(
-                    fontSize: su.sp(12),
-                    color: Colors.green[700],
-                    fontStyle: FontStyle.italic,
+            if (_isPlaying) ...[
+              SizedBox(height: su.h(8)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.volume_up, size: su.sp(16), color: Colors.green[700]),
+                  SizedBox(width: su.w(4)),
+                  Text(
+                    'audio_playing'.tr(),
+                    style: TextStyle(
+                      fontSize: su.sp(12),
+                      color: Colors.green[700],
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
         ],
       ),
