@@ -45,9 +45,8 @@ class NotificationService {
     );
 
     print('🍏 iOS permission granted: $granted');
-    const androidSettings = AndroidInitializationSettings(
-      'logobell', // Bildirimlerde gösterilecek küçük ikon
-    );
+    // Android: bildirime özel ikon (drawable/tapremind.png mevcut)
+    const androidSettings = AndroidInitializationSettings('tapremind');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -221,10 +220,8 @@ class NotificationService {
       playSound: true,
       enableVibration: true,
       showWhen: true,
-      icon: 'logobell', // Küçük ikon
-      largeIcon: const DrawableResourceAndroidBitmap(
-        'logobell',
-      ), // Banner'da gösterilecek büyük logo
+      icon: 'tapremind', // Küçük ikon
+      largeIcon: const DrawableResourceAndroidBitmap('tapremind'),
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -245,7 +242,9 @@ class NotificationService {
 
       print('📅 Scheduling notification with zonedSchedule...');
       print('   Notification ID: ${reminder.id.hashCode}');
-      print('   Scheduled time: $scheduledDate');
+      print('   Scheduled time (requested): $scheduledDate');
+      print('   Scheduled time (actual):    $targetDate');
+
       print('   Title: Hatırlatıcı');
       print(
         '   Body: ${reminder.transcript.isEmpty ? "Sesli hatırlatıcı" : reminder.transcript}',
