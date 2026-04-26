@@ -58,20 +58,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final settingsBox = Hive.box(_settingsBoxName);
     await settingsBox.put(_languageKey, languageCode);
 
-    // Change app locale
+    if (!mounted) return;
+
     await context.setLocale(
       languageCode == 'en' ? const Locale('en') : const Locale('tr'),
     );
+
+    if (!mounted) return;
 
     setState(() {
       _selectedLanguage = languageCode;
     });
 
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('settings_saved'.tr())));
-    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('settings_saved'.tr())));
   }
 
   @override
@@ -116,26 +117,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: _soundOptions.map((sound) {
-                      return RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        visualDensity: VisualDensity.compact,
-                        title: Text(
-                          sound.tr(),
-                          style: TextStyle(fontSize: su.sp(14)),
-                        ),
-                        value: sound,
-                        groupValue: _selectedSound,
-                        onChanged: (value) {
-                          if (value != null) {
-                            _saveSoundSetting(value);
-                            Navigator.pop(context);
-                          }
-                        },
-                      );
-                    }).toList(),
+                  content: RadioGroup<String>(
+                    groupValue: _selectedSound,
+                    onChanged: (value) {
+                      if (value != null) {
+                        _saveSoundSetting(value);
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: _soundOptions.map((sound) {
+                        return RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          title: Text(
+                            sound.tr(),
+                            style: TextStyle(fontSize: su.sp(14)),
+                          ),
+                          value: sound,
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
               );
@@ -166,82 +169,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        visualDensity: VisualDensity.compact,
-                        title: Text(
-                          'turkish'.tr(),
-                          style: TextStyle(fontSize: su.sp(14)),
+                  content: RadioGroup<String>(
+                    groupValue: _selectedLanguage,
+                    onChanged: (value) {
+                      if (value != null) {
+                        _saveLanguageSetting(value);
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          title: Text(
+                            'turkish'.tr(),
+                            style: TextStyle(fontSize: su.sp(14)),
+                          ),
+                          value: 'tr',
                         ),
-                        value: 'tr',
-                        groupValue: _selectedLanguage,
-                        onChanged: (value) {
-                          if (value != null) {
-                            _saveLanguageSetting(value);
-                            Navigator.pop(context);
-                          }
-                        },
-                      ),
-                      RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        visualDensity: VisualDensity.compact,
-                        title: Text(
-                          'english'.tr(),
-                          style: TextStyle(fontSize: su.sp(14)),
+                        RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          title: Text(
+                            'english'.tr(),
+                            style: TextStyle(fontSize: su.sp(14)),
+                          ),
+                          value: 'en',
                         ),
-                        value: 'en',
-                        groupValue: _selectedLanguage,
-                        onChanged: (value) {
-                          if (value != null) {
-                            _saveLanguageSetting(value);
-                            Navigator.pop(context);
-                          }
-                        },
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
             },
           ),
           Divider(thickness: su.h(1)),
-         /* Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Test'.tr(), // istersen direkt 'Test' de yazabilirsin
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.notifications_active),
-            title: const Text('iOS Foreground Bildirim Testi'),
-            subtitle: const Text('Uygulama AÇIKKEN banner/ses geliyor mu?'),
-            trailing: const Icon(Icons.play_arrow),
-            onTap: () async {
-              try {
-                await _notificationService.clearAllIosNotifications();
-                await _notificationService.testForegroundNow();
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Test bildirimi tetiklendi ✅'),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Test hatası: $e')));
-                }
-              }
-            },
-          ),
-*/
           Padding(
             padding: EdgeInsets.all(su.r(16)),
             child: Text(

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -47,25 +46,14 @@ class _HomeScreenState extends State<HomeScreen> {
     // Bu yüzden sadece durumu kontrol ediyoruz, izin istemiyoruz
     // İzin, kullanıcı butona bastığında istenecek
 
-    // Mikrofon izni durumu
-    final micStatus = await Permission.microphone.status;
-    print('📱 Initial microphone permission status: $micStatus');
-
-    // Speech recognition izni durumu
-    final speechStatus = await Permission.speech.status;
-    print('📱 Initial speech permission status: $speechStatus');
-
-    // Android'de mikrofon ve bildirim izinlerini erken iste
     if (Platform.isAndroid) {
+      final micStatus = await Permission.microphone.status;
       if (!micStatus.isGranted) {
-        final micResult = await Permission.microphone.request();
-        print('🎤 Microphone permission request result: $micResult');
+        await Permission.microphone.request();
       }
-
       final notifStatus = await Permission.notification.status;
       if (!notifStatus.isGranted) {
-        final notifResult = await Permission.notification.request();
-        print('🔔 Notification permission request result: $notifResult');
+        await Permission.notification.request();
       }
     }
 
@@ -86,9 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       // If reminder time passed but not completed, show notification
       if (scheduledTime.isBefore(now) && !reminder.isCompleted) {
-        print(
-          'Found overdue reminder: ${reminder.id}, scheduled: $scheduledTime',
-        );
         // Show notification immediately
         await _notificationService.showOverdueNotification(reminder);
       }
@@ -116,21 +101,12 @@ class _HomeScreenState extends State<HomeScreen> {
     // Bu nedenle Android'de sadece speech_to_text çalışsın; iOS'ta kayıt devam edebilir.
     bool recordingStarted = true;
     if (!Platform.isAndroid) {
-      print(
-        '🎤 Starting audio recording (iOS will request permission if needed)...',
-      );
       recordingStarted = await _audioService.startRecording();
-      print('Audio recording started: $recordingStarted');
-    } else {
-      print(
-        '🎤 Skipping audio recorder on Android to avoid mic conflict with speech_to_text',
-      );
     }
 
     // Eğer kayıt başlatılamadıysa, izin kontrolü yap
     if (!recordingStarted) {
       final micPermission = await Permission.microphone.status;
-      print('Microphone permission status after failed start: $micPermission');
 
       if (micPermission.isPermanentlyDenied) {
         // iOS'ta permanently denied ise ayarlara yönlendir
@@ -156,33 +132,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // Start real-time speech recognition
-    print('🎤 ===== Starting Speech Recognition =====');
 
     // iOS'ta speech recognition izni de gerçekten kullanılmaya çalışıldığında istenir
     // Speech service'in initialize() metodu içinde izin isteyecek
     // Bu yüzden burada önce izin kontrolü yapmıyoruz
 
-    print('🔄 Initializing speech service...');
     final speechInitialized = await _speechService.initialize();
-    print('✅ Speech initialized: $speechInitialized');
-
-    // Eğer speech service initialize edilemediyse, hata mesajı göster
-    if (!speechInitialized) {
-      print('⚠️ Speech service initialization failed');
-      // iOS'ta speech recognition izni speech.listen() çağrıldığında otomatik istenir
-      // Bu yüzden burada izin kontrolü yapmıyoruz, direkt devam ediyoruz
-      // İzin, speech.listen() çağrıldığında iOS tarafından otomatik istenecek
-    }
 
     if (speechInitialized) {
-      print('Starting speech recognition...');
-
-      // Check if speech recognition is available
       final isAvailable = _speechService.speech.isAvailable;
-      print('Speech recognition isAvailable: $isAvailable');
 
       if (!isAvailable) {
-        print('⚠️ Speech recognition not available!');
         _showError('speech_recognition_not_available'.tr());
         setState(() {
           _isRecording = false;
@@ -192,20 +152,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       if (isAvailable) {
-        print('Speech recognition available, starting listen...');
-
-        // Check available locales
         final locales = await _speechService.speech.locales();
-        print('Available locales count: ${locales.length}');
-        if (locales.isNotEmpty) {
-          print(
-            'Sample locales: ${locales.take(5).map((l) => '${l.localeId} - ${l.name}').join(', ')}',
-          );
-        }
-
-        // Try to find Turkish locale, fallback to default
         String localeId = 'en_US';
-        String localeName = 'English';
 
         if (locales.isNotEmpty) {
           try {
@@ -213,96 +161,49 @@ class _HomeScreenState extends State<HomeScreen> {
               (locale) => locale.localeId.startsWith('tr'),
             );
             localeId = turkishLocale.localeId;
-            localeName = turkishLocale.name;
           } catch (e) {
             localeId = locales.first.localeId;
-            localeName = locales.first.name;
           }
         }
-        print('Using locale: $localeId - $localeName');
 
         try {
-          print('🎯 Calling speech.listen() with locale: $localeId');
-          print('📋 Listen parameters:');
-          print('   - listenFor: 120 seconds');
-          print('   - pauseFor: 5 seconds');
-          print('   - partialResults: true');
-          print('   - listenMode: dictation');
-          print('   - cancelOnError: false');
-
-          final listenResult = _speechService.speech.listen(
+          _speechService.speech.listen(
             onResult: (result) {
-              print('🎯 ===== SPEECH RESULT RECEIVED =====');
-              print('📝 Recognized words: "${result.recognizedWords}"');
-              print('✅ Final result: ${result.finalResult}');
-              print('📊 Has words: ${result.recognizedWords.isNotEmpty}');
-              print(
-                '📏 Word count: ${result.recognizedWords.split(" ").length}',
-              );
-
-              // Always update transcript when we get results
               setState(() {
                 if (result.recognizedWords.isNotEmpty) {
                   _transcript = result.recognizedWords;
-                  print('✅✅✅ Transcript updated in UI: "$_transcript"');
-                  print('✅✅✅ Transcript length: ${_transcript.length}');
-                } else {
-                  // Even if empty, update to show we're listening
-                  if (!result.finalResult) {
-                    // Partial result but empty - still listening
-                    print(
-                      '⏳ Listening... (no words yet, but speech recognition is active)',
-                    );
-                  } else {
-                    print(
-                      '⚠️ Final result received but empty - no speech detected',
-                    );
-                  }
                 }
-
-                // If this is final result, mark that we're done waiting
                 if (result.finalResult) {
                   _waitingForFinalResult = false;
-                  print('✅ Final result received, done waiting');
                 }
               });
             },
             listenFor: const Duration(seconds: 120),
             pauseFor: const Duration(seconds: 5),
-            partialResults: true,
             localeId: localeId,
-            listenMode: stt.ListenMode.dictation,
-            cancelOnError: false,
             onSoundLevelChange: (level) {
-              // Always print sound level to see if microphone is working
-              print('🔊 Sound level: ${level.toStringAsFixed(3)}');
-              // Update UI to show we're receiving audio
               if (mounted) {
                 setState(() {
                   _soundLevel = level;
                 });
               }
             },
+            listenOptions: stt.SpeechListenOptions(
+              partialResults: true,
+              listenMode: stt.ListenMode.dictation,
+              cancelOnError: false,
+            ),
           );
 
-          print('🎯 speech.listen() called, result: $listenResult');
-          print('✅ Speech recognition started with locale: $localeId');
-
-          // Check status after a short delay
           Future.delayed(const Duration(milliseconds: 500), () async {
             final isListening = _speechService.speech.isListening;
-            print('📊 Speech recognition isListening status: $isListening');
             if (mounted) {
               setState(() {
                 _isSpeechListening = isListening;
               });
             }
             if (!isListening) {
-              print('⚠️⚠️⚠️ WARNING: Speech recognition is NOT listening!');
-              // İzin kontrolü yap
               final speechPermission = await Permission.speech.status;
-              print('🔐 Speech permission status: $speechPermission');
-
               if (speechPermission.isPermanentlyDenied) {
                 if (mounted) {
                   final shouldOpen = await _showPermissionDialog(
@@ -322,45 +223,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   _showError('speech_recognition_failed_to_start'.tr());
                 }
               }
-            } else {
-              print('✅✅✅ Speech recognition is ACTIVE and listening!');
             }
           });
 
-          // Periodic check to see if we're still listening
           Future.delayed(const Duration(seconds: 2), () {
-            final isListening = _speechService.speech.isListening;
-            print('📊 [2s check] Speech recognition isListening: $isListening');
-            if (!isListening && mounted && _isRecording) {
-              print('⚠️ Speech recognition stopped unexpectedly!');
+            if (!_speechService.speech.isListening && mounted && _isRecording) {
               _showError('speech_recognition_stopped'.tr());
             }
           });
-
-          // Check again after 5 seconds
-          Future.delayed(const Duration(seconds: 5), () {
-            final isListening = _speechService.speech.isListening;
-            print('📊 [5s check] Speech recognition isListening: $isListening');
-            if (isListening && _transcript.isEmpty && mounted) {
-              print(
-                '⚠️ Speech recognition is listening but no results yet. Speak louder!',
-              );
-            }
-          });
-        } catch (e, stackTrace) {
-          print('❌❌❌ ERROR starting speech recognition: $e');
-          print('Stack trace: $stackTrace');
+        } catch (e) {
           _showError(
             'speech_recognition_failed'.tr(namedArgs: {'error': e.toString()}),
           );
         }
-      } else {
-        print(
-          'Speech recognition not available - check Google Speech Services',
-        );
       }
-    } else {
-      print('Speech service initialization failed');
     }
   }
 
@@ -373,7 +249,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     // Stop speech recognition first
-    print('Stopping speech recognition...');
     _speechService.stopListening();
 
     // Wait for final transcription - wait up to 3 seconds for final result
@@ -384,7 +259,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _speechService.isListening) {
       await Future.delayed(const Duration(milliseconds: 100));
       waitCount++;
-      print('Waiting for final result... ($waitCount/30)');
     }
 
     // Additional wait to ensure we get the final result
@@ -392,7 +266,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Check one more time if we got a final result
     if (_waitingForFinalResult) {
-      print('⚠️ Still waiting for final result, forcing completion');
       setState(() {
         _waitingForFinalResult = false;
       });
@@ -406,8 +279,6 @@ class _HomeScreenState extends State<HomeScreen> {
       finalTranscript = 'no_speech_detected'.tr();
     }
 
-    print('Final transcript after stop: "$finalTranscript"');
-    print('Transcript length: ${finalTranscript.length}');
 
     // Stop audio recording
     String? audioPath;
@@ -425,30 +296,19 @@ class _HomeScreenState extends State<HomeScreen> {
       _waitingForFinalResult = false;
     });
 
-    // Android'de recorder çalıştırmıyoruz; bu nedenle audioPath null olabilir.
     if (audioPath == null) {
-      if (Platform.isAndroid) {
-        print('ℹ️ Android: audio recording skipped; using empty audio path.');
-      } else {
+      if (!Platform.isAndroid) {
         _showError('recording_error'.tr());
         return;
       }
-    }
-
-    // Check if file exists (skip on Android when recorder is off)
-    if (Platform.isAndroid && audioPath == null) {
-      audioPath = ''; // Placeholder for model; playback will be unavailable
+      audioPath = ''; // Android: ses kaydı yok, placeholder
     } else {
-      final file = File(audioPath!);
+      final file = File(audioPath);
       if (!await file.exists()) {
         _showError('audio_file_save_failed'.tr());
         return;
       }
-
-      final fileSize = await file.length();
-      print('Audio file saved: $audioPath, size: $fileSize bytes');
     }
-    print('Final transcript: $finalTranscript');
 
     // Determine scheduled time based on button type
     DateTime? scheduledTime;
@@ -503,6 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (pickedDate == null) return null;
+    if (!mounted) return null;
 
     final pickedTime = await showTimePicker(
       context: context,
@@ -536,7 +397,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ? 'audio_recording_received'.tr()
         : _transcript;
 
-    print('📝 Creating reminder with transcript: "$finalTranscript"');
 
     final reminder = Reminder(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -583,7 +443,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(

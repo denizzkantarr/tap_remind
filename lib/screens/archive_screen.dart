@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../models/reminder.dart';
 import '../services/storage_service.dart';
@@ -41,7 +40,6 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
           // If not playing, always clear the currently playing path
           // This ensures the button returns to play icon when audio finishes
           if (!isPlaying) {
-            print('🛑 Audio stopped, clearing _currentlyPlayingPath');
             _currentlyPlayingPath = null;
           }
           // Note: We don't set _currentlyPlayingPath here when isPlaying is true
@@ -154,7 +152,6 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
   }
 
   Future<void> _playAudio(String audioPath) async {
-    print('🎵 Attempting to play audio from: $audioPath');
     
     // If already playing this audio, stop it
     if (_currentlyPlayingPath == audioPath && _audioPlayer.isPlaying) {
@@ -186,10 +183,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
           );
         }
       } else {
-        print('✅ Audio is playing successfully');
       }
     } catch (e) {
-      print('❌ Error playing audio: $e');
       setState(() {
         _currentlyPlayingPath = null;
       });
@@ -277,13 +272,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
           borderRadius: BorderRadius.circular(su.r(16)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: su.r(10),
               offset: Offset(0, su.h(2)),
             ),
           ],
           border: Border.all(
-            color: hasTranscript ? const Color(0xFFFF6B35).withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+            color: hasTranscript ? const Color(0xFFFF6B35).withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.2),
             width: su.w(1),
           ),
         ),
@@ -358,8 +353,8 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
                     Container(
                       decoration: BoxDecoration(
                         color: isPlaying 
-                            ? Colors.red.withOpacity(0.1)
-                            : const Color(0xFFFF6B35).withOpacity(0.1),
+                            ? Colors.red.withValues(alpha: 0.1)
+                            : const Color(0xFFFF6B35).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
@@ -378,7 +373,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> with SingleTickerProvider
               Divider(
                 height: 1,
                 thickness: su.h(1),
-                color: Colors.grey.withOpacity(0.2),
+                color: Colors.grey.withValues(alpha: 0.2),
               ),
               SizedBox(height: su.h(12)),
               // Date and time info

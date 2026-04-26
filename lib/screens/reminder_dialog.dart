@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../models/reminder.dart';
 import '../services/audio_player_service.dart';
@@ -45,7 +44,6 @@ class _ReminderDialogState extends State<ReminderDialog> {
         _isPlaying = false;
       });
     } else {
-      print('🎵 Attempting to play audio from: ${widget.reminder.audioPath}');
       try {
         final success = await _audioPlayer.playAudio(widget.reminder.audioPath);
         
@@ -65,7 +63,6 @@ class _ReminderDialogState extends State<ReminderDialog> {
           }
         }
       } catch (e) {
-        print('❌ Error playing audio: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

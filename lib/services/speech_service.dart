@@ -12,7 +12,6 @@ class SpeechService {
 
   Future<bool> initialize() async {
     if (_isInitialized) {
-      print('✅ Speech service already initialized');
       return true;
     }
 
@@ -21,9 +20,7 @@ class SpeechService {
       final micStatus = await Permission.microphone.status;
       if (!micStatus.isGranted) {
         final result = await Permission.microphone.request();
-        print('🎤 Microphone permission (Android) request result: $result');
         if (!result.isGranted) {
-          print('❌ Microphone permission not granted. Speech init aborted.');
           return false;
         }
       }
@@ -33,29 +30,7 @@ class SpeechService {
     // Bu yüzden burada izin kontrolü yapmıyoruz, direkt initialize ediyoruz
     // İzin, speech.listen() çağrıldığında iOS tarafından otomatik istenecek
 
-    print('🔄 Initializing speech_to_text...');
-    _isInitialized = await _speech.initialize(
-      onStatus: (status) {
-        print('📡 Speech service status: $status');
-      },
-      onError: (error) {
-        print('❌ Speech service error: $error');
-        print('   Error details: ${error.errorMsg}');
-      },
-    );
-
-    print('✅ Speech service initialized: $_isInitialized');
-    if (_isInitialized) {
-      final isAvailable = _speech.isAvailable;
-      print('📊 Speech recognition available: $isAvailable');
-      if (!isAvailable) {
-        print('⚠️ WARNING: Speech recognition is not available!');
-        print('   This might be because:');
-        print('   1. Google Speech Services not installed');
-        print('   2. Internet connection required');
-        print('   3. Device language settings');
-      }
-    }
+    _isInitialized = await _speech.initialize();
 
     return _isInitialized;
   }
@@ -101,8 +76,8 @@ class SpeechService {
       },
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 3),
-      partialResults: true,
-      localeId: 'tr_TR', // Turkish locale
+      localeId: 'tr_TR',
+      listenOptions: stt.SpeechListenOptions(partialResults: true),
     );
 
     // Wait for final result

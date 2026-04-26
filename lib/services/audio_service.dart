@@ -23,7 +23,6 @@ class AudioService {
       // iOS'ta mikrofon izni dialog'u AudioRecorder.start() çağrıldığında otomatik çıkar
       // Bu yüzden önce Permission.microphone.request() yapmıyoruz
       // iOS otomatik olarak izin isteyecek
-      print('🎤 Starting audio recorder (iOS will request permission automatically)...');
       await _recorder.start(
         const RecordConfig(
           encoder: AudioEncoder.aacLc,
@@ -34,10 +33,8 @@ class AudioService {
       );
 
       _isRecording = true;
-      print('✅ Audio recording started successfully');
       return true;
     } catch (e) {
-      print('❌ Error starting recording: $e');
       // iOS'ta izin reddedilirse exception fırlatılır
       // Bu durumda false döndürüyoruz
       return false;
@@ -53,7 +50,6 @@ class AudioService {
       _currentRecordingPath = path;
       return path;
     } catch (e) {
-      print('Error stopping recording: $e');
       _isRecording = false;
       return null;
     }

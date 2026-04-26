@@ -32,17 +32,7 @@ void main() async {
   try {
     final location = tz.getLocation('Europe/Istanbul');
     tz.setLocalLocation(location);
-    print('✅ Timezone set to: Europe/Istanbul');
-  } catch (e) {
-    print('⚠️ Could not set timezone to Europe/Istanbul: $e');
-    // Fallback: cihazın timezone'unu kullan
-    try {
-      final locationName = DateTime.now().timeZoneName;
-      print('Using device timezone: $locationName');
-    } catch (e2) {
-      print('⚠️ Could not get device timezone: $e2');
-    }
-  }
+  } catch (_) {}
 
   // Permissions
   // iOS'ta notification permission flutter_local_notifications tarafından otomatik istenir
