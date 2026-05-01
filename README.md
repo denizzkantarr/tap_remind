@@ -1,4 +1,4 @@
-# Tap Remind
+# Blip
 
 > Sesli hatırlatıcı uygulaması / Voice-based reminder app
 
@@ -9,23 +9,9 @@
 <table>
   <tr>
     <td align="center"><b>Ana Ekran</b></td>
-    <td align="center"><b>Özel Saat Seçici</b></td>
-    <td align="center"><b>Hatırlatıcı Oluşturuldu</b></td>
   </tr>
   <tr>
-    <td><img src="assets/screenshots/Screenshot%202026-04-30%20at%2015.17.33.png" width="200"/></td>
-    <td><img src="assets/screenshots/Screenshot%202026-04-30%20at%2015.19.31.png" width="200"/></td>
-    <td><img src="assets/screenshots/Screenshot%202026-04-30%20at%2015.19.37.png" width="200"/></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Arşiv — Aktif</b></td>
-    <td align="center"><b>Arşiv — Tamamlanan</b></td>
-    <td align="center"><b>Push Bildirim</b></td>
-  </tr>
-  <tr>
-    <td><img src="assets/screenshots/Screenshot%202026-04-30%20at%2015.19.45.png" width="200"/></td>
-    <td><img src="assets/screenshots/Screenshot%202026-04-30%20at%2015.19.50.png" width="200"/></td>
-    <td><img src="assets/screenshots/Screenshot%202026-04-30%20at%2015.21.03.png" width="200"/></td>
+    <td><img src="assets/screenshots/Screenshot%202026-05-01%20at%2019.17.06.png" width="200"/></td>
   </tr>
 </table>
 

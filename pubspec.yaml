@@ -87,12 +87,18 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/images/logoBell.png
+  image_path: assets/images/logoBellNew.png
   remove_alpha_ios: true
 
   # Sadece Android adaptive ikon içindir (iOS bunu kullanmaz)
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: assets/images/logoBell.png
+  adaptive_icon_foreground: assets/images/logoBellNew.png
+
+flutter_native_splash:
+  color: "#F5FBF7"
+  image: assets/images/splash_brand_new.png
+  android: true
+  ios: true
 
 
  

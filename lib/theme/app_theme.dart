@@ -7,15 +7,15 @@ class AppColors {
   AppColors._();
 
   // Marka renkleri
-  static const Color primary = Color(0xFFFF6B35);
-  static const Color primaryDark = Color(0xFFD94F1D);
-  static const Color primarySurface = Color(0xFFFFF0EB);
+  static const Color primary = Color(0xFF16A34A);
+  static const Color primaryDark = Color(0xFF15803D);
+  static const Color primarySurface = Color(0xFFDCFCE7);
   static const Color onPrimary = Color(0xFFFFFFFF);
 
   // Arkaplan
-  static const Color background = Color(0xFFF6F6FA);
+  static const Color background = Color(0xFFF5FBF7);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF0F0F6);
+  static const Color surfaceVariant = Color(0xFFEEF7F1);
 
   // Metin
   static const Color textPrimary = Color(0xFF0F1117);
@@ -108,7 +108,7 @@ class AppDecorations {
     border: Border.all(color: borderColor ?? AppColors.border, width: 1),
   );
 
-  /// Aktif kart — turuncu parlama efektli
+  /// Aktif kart — yeşil parlama efektli
   static BoxDecoration activeCard() => BoxDecoration(
     color: AppColors.surface,
     borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -188,7 +188,7 @@ class AppTheme {
       scrim: Color(0x66000000),
       inverseSurface: AppColors.textPrimary,
       onInverseSurface: Colors.white,
-      inversePrimary: Color(0xFFFFBEA0),
+      inversePrimary: Color(0xFF86EFAC),
     );
 
     return ThemeData(

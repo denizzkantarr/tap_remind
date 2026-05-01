@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../utils/screen_util.dart';
 
-class TapRemindLogo extends StatelessWidget {
+class BlipLogo extends StatelessWidget {
   final double? size;
   final bool showText;
 
-  const TapRemindLogo({super.key, this.size, this.showText = true});
+  const BlipLogo({super.key, this.size, this.showText = true});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +17,7 @@ class TapRemindLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Image.asset(
-          'assets/images/logo.png',
+          'assets/images/newLogo.png',
           width: resolvedSize,
           height: resolvedSize,
           fit: BoxFit.contain,
@@ -40,7 +40,7 @@ class TapRemindLogo extends StatelessWidget {
         if (showText) ...[
           SizedBox(width: su.w(12)),
           Text(
-            'TapRemind',
+            'Blip',
             style: TextStyle(
               fontSize: su.sp(22),
               fontWeight: FontWeight.w800,

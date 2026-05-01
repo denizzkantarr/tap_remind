@@ -376,7 +376,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: TapRemindLogo(size: su.w(160), showText: false),
+        title: BlipLogo(size: su.w(160), showText: false),
         actions: [
           _AppBarIconButton(
             icon: Icons.format_list_bulleted_rounded,

@@ -48,7 +48,7 @@ class NotificationService {
 
     await ios?.requestPermissions(alert: true, badge: true, sound: true);
 
-    const androidSettings = AndroidInitializationSettings('tapremind');
+    const androidSettings = AndroidInitializationSettings('blip');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -174,8 +174,8 @@ class NotificationService {
       playSound: true,
       enableVibration: true,
       showWhen: true,
-      icon: 'tapremind',
-      largeIcon: const DrawableResourceAndroidBitmap('tapremind'),
+      icon: 'blip',
+      largeIcon: const DrawableResourceAndroidBitmap('blip'),
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -222,8 +222,8 @@ class NotificationService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      icon: 'logobell',
-      largeIcon: const DrawableResourceAndroidBitmap('logobell'),
+      icon: 'logobellnew',
+      largeIcon: const DrawableResourceAndroidBitmap('logobellnew'),
     );
 
     const iosDetails = DarwinNotificationDetails(
